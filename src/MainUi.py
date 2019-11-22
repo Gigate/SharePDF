@@ -5,7 +5,7 @@ from PyQt5.QtGui import QKeyEvent, QIntValidator
 from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QWidget, QToolBar, QAction, qApp, \
     QFileDialog, QLineEdit, QSizePolicy
 
-
+from src.CentraWidget import CentralWidget
 from src.PdfDrawWidget import PdfDrawWidget
 
 
@@ -20,7 +20,7 @@ class MainUI(QMainWindow):
 
         # Todo Add Draw function for MousePointers of others
         # The central Widget where all content is displayed
-        centralwidget = QWidget(self)
+        centralwidget = CentralWidget(self)
         centralwidget.setObjectName("centralwidget")
         centralwidget.setLayout(verticalLayout)
 
