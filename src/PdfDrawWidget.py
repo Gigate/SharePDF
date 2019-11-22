@@ -1,9 +1,9 @@
 from typing import List, Tuple
 
-from PyQt5.QtCore import QRect, Qt, QPoint
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QWidget, QScrollBar
-from fitz import Document, Page, Pixmap, fitz, Matrix, Rect
+from fitz import Document, Pixmap, fitz
 
 
 class PdfDrawWidget(QWidget):
@@ -74,7 +74,7 @@ class PdfDrawWidget(QWidget):
                 i = falseI + lowestVisablePage
                 clipx0 = (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) \
                     if (
-                                   page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
+                               page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
                 clipy0 = (self.verticalScrollbar.value() - self.__pageoffsets[i]) / self.zoom \
                     if self.verticalScrollbar.value() >= self.__pageoffsets[i] else 0
                 # clipx1 =
