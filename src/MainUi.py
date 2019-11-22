@@ -12,6 +12,7 @@ from src.PdfDrawWidget import PdfDrawWidget
 class MainUI(QMainWindow):
 
     def __init__(self):
+        
         super().__init__()
 
         verticalLayout = QVBoxLayout()
