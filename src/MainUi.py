@@ -5,14 +5,14 @@ from PyQt5.QtGui import QKeyEvent, QIntValidator
 from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QWidget, QToolBar, QAction, qApp, \
     QFileDialog, QLineEdit, QSizePolicy
 
-from src.CentraWidget import CentralWidget
-from src.PdfDrawWidget import PdfDrawWidget
+from CentraWidget import CentralWidget
+from PdfDrawWidget import PdfDrawWidget
 
 
 class MainUI(QMainWindow):
 
     def __init__(self):
-        
+
         super().__init__()
 
         verticalLayout = QVBoxLayout()
@@ -24,10 +24,10 @@ class MainUI(QMainWindow):
         centralwidget.setObjectName("centralwidget")
         centralwidget.setLayout(verticalLayout)
 
-        #Create the pdfWiget which Displays the PDF
+        # Create the pdfWiget which Displays the PDF
         self.pdfWidget = PdfDrawWidget(centralwidget)
 
-        #Set Layout Design
+        # Set Layout Design
         horizontalLayout.addWidget(self.pdfWidget.verticalScrollbar)
         horizontalLayout.addWidget(self.pdfWidget)
 
@@ -37,12 +37,10 @@ class MainUI(QMainWindow):
         self.toolbar: QToolBar = self.addToolBar("Toolbar1")
         self.fillToolbar()
 
-
         self.setCentralWidget(centralwidget)
-        self.resize(800,600)
+        self.resize(800, 600)
         self.setWindowTitle('PdfViewer')
         self.show()
-
 
     intvalidator: QIntValidator = QIntValidator()
     pageNum: QLineEdit = None
@@ -56,8 +54,7 @@ class MainUI(QMainWindow):
         openAct.setShortcut('Ctrl+O')
         openAct.triggered.connect(self.getPath)
 
-
-        self.intvalidator.setRange(0,0)
+        self.intvalidator.setRange(0, 0)
         self.pageNum = QLineEdit(self.toolbar)
         self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.pageNum.setValidator(self.intvalidator)
@@ -74,7 +71,6 @@ class MainUI(QMainWindow):
     def keyReleaseEvent(self, event: QKeyEvent):
         """Connect all KeyReleaseEvents to the self.pdfWidget"""
         self.pdfWidget.keyReleaseEvent(event)
-
 
     def getPath(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
