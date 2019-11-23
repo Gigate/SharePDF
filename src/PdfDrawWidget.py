@@ -7,18 +7,28 @@ from fitz import Document, Pixmap, fitz, Rect
 
 
 class PdfDrawWidget(QWidget):
+
+    PAGESEPERATIONHEIGTH = 5
+
     horizontalScrollbar = None
     verticalScrollbar = None
 
-    relativeMousePos: Tuple[float, float] = (0, 0)
-
+    #Pdf rendering properties
     pdfVis: Document = None
     pageNum: int = 0
     zoom: float = 1
 
-    __controlIsPressed = False
+    __pdf_is_rendered = False
+    __viewchanged = True
+    __zoomed = True
+    __pdfImages: List[Tuple[int, QImage]] = []  # List of Tuples where first index is the hightoffset
+    __pageoffsets: List[int] = []
+    __updatePagenum = True
 
-    __pressStart: Tuple[float, float] = None
+    #Mouse and Keyboard vars
+    __controlIsPressed = False
+    __press_starting_pos: Tuple[float, float] = None
+    __last_mousemove_event = None
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -32,15 +42,32 @@ class PdfDrawWidget(QWidget):
         self.verticalScrollbar.valueChanged.connect(lambda: self.update())
         self.setMouseTracking(True)
 
+    @property
+    def yScrollValue(self):
+        """Returns a y_scroll_value that is relative to the pdf"""
+        return self.verticalScrollbar.value()/self.zoom
+
+    @property
+    def relativeMousePos(self) -> Tuple[float, float]:
+        """Calculates a mouse position (x,y) relative to the pdf.
+           x is 0 in the center of the pdf and increases for the right side
+           y is 0 at the pdf top and ignores pageseperations"""
+        if self.__last_mousemove_event is not None:
+            pageseperation = 0
+            iterator = iter(self.__pageoffsets)
+            next(iterator)
+            for height in iterator:
+                if height - self.verticalScrollbar.value() < self.__last_mousemove_event.y():
+                    pageseperation += self.PAGESEPERATIONHEIGTH
+                else:
+                    break
+            yPos = (self.__last_mousemove_event.y() - pageseperation + self.verticalScrollbar.value()) / self.zoom
+            xPos = (self.__last_mousemove_event.x() - self.width() / 2 + self.verticalScrollbar.value()) / self.zoom
+            return (xPos, yPos)
+
     def paintEvent(self, event: QPaintEvent):
         """All Drawing Actions are activated here"""
         self.__drawPDF(event)
-
-    __viewchanged = True
-    __zoomed = True
-    __pdfImages: List[Tuple[int, QImage]] = []  # List of Tuples where first index is the hightoffset
-    __pageoffsets: List[int] = []
-    __updatePagenum = True
 
     def __drawPDF(self, event: QPaintEvent):
         """Draws the Pdf centered onto the self Object as long as the self.pdfVis variable isn't None.
@@ -70,6 +97,7 @@ class PdfDrawWidget(QWidget):
                     if self.pageNum != prev_pagenum:
                         new_scroll_value = self.__pageoffsets[self.pageNum] - self.__pageoffsets[prev_pagenum] + self.verticalScrollbar.value()
                         self.verticalScrollbar.setValue(new_scroll_value)
+                        self.__updatePagenum = False
                 else:
                     self.pageNum = prev_pagenum
 
@@ -117,8 +145,9 @@ class PdfDrawWidget(QWidget):
             for i, (y, img) in enumerate(self.__pdfImages):
                 self.painter.drawImage(self.painter.viewport().width() / 2 - img.width() / 2
                                        - self.horizontalScrollbar.value(),
-                                       y + 5 * i - self.verticalScrollbar.value(), img)
+                                       y + self.PAGESEPERATIONHEIGTH * i - self.verticalScrollbar.value(), img)
             self.painter.end()
+            self.__pdf_is_rendered = True
         else:
             pass
 
@@ -146,24 +175,29 @@ class PdfDrawWidget(QWidget):
             self.__controlIsPressed = False
 
     def mousePressEvent(self, event: QMouseEvent):
-        self.__pressStart = (event.x(), event.y())
+        self.__press_starting_pos = (event.x(), event.y())
 
     def mouseMoveEvent(self, event: QMouseEvent):
-
-        if self.__pressStart is not None:
+        self.__last_mousemove_event = event
+        if self.__press_starting_pos is not None:
             pass
             # Todo Draw Rectangle around all Textboxes
 
     def loadDocument(self, path: str):
+        """loads a PDF"""
         self.pdfVis = fitz.Document(path)
         self.update()
 
-    def updatePage(self, newPageNum: int=None):
+    def updatePage(self, newPageNum: int=None, newPageDelta: int=None):
+        """This Method jumps to the new page or by a given Delta
+            if a newPageNum is given the delta will be applied to the new PageNum
+            If the delta is not valid it won't be applied"""
         if newPageNum is not None:
             self.pageNum = newPageNum
+        if newPageDelta is not None and self.pdfVis is not None:
+            if self.pageNum - newPageDelta >= 0 and self.pageNum - newPageDelta < self.pdfVis.pageCount:
+                self.pageNum += newPageDelta
         self.__updatePagenum = True
         self.update()
 
-    def __updateRelativeMousePos(self, event: QMouseEvent):
-        #Todo calculate Mouse pos
-        pass
+
