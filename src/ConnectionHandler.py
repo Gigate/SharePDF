@@ -108,4 +108,3 @@ class ConnectionHandler:
             self.connection.remove_socket()
             return self.joinLobby(hostname, port, password, username)
 
-        def
