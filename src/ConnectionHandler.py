@@ -1,10 +1,10 @@
-import pickle
+import pickle as pickle
 import threading
 from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM
 from typing import Optional, Callable, Any, Iterable, Mapping
 from fitz import Document
-from src.MessageTyp import LobbyConnect, ClientStatus
-from src.PdfDrawWidget import PdfDrawWidget
+from MessageTyp import LobbyConnect, ClientStatus
+from PdfDrawWidget import PdfDrawWidget
 from threading import Thread
 import time
 
@@ -79,7 +79,7 @@ class ConnectionHandler:
             try:
                 self.connection.create_tcp_socket(hostname, port)
                 lobbyconnect = LobbyConnect(lobbyname, password, username, pdf)
-                self.connection.socket.sendall(pickle.dumps(lobbyconnect, 4))
+                self.connection.socket.sendall(pickle.dumps(lobbyconnect))
 
                 data = self.connection.socket.recv(1024)
                 newdata = self.connection.socket.recv(1024)
@@ -109,7 +109,7 @@ class ConnectionHandler:
             try:
                 self.connection.create_tcp_socket(hostname, port)
                 lobby_connect = LobbyConnect(lobbyname, password, username)
-                self.connection.socket.sendall(pickle.dumps(lobby_connect, 4))
+                self.connection.socket.sendall(pickle.dumps(lobby_connect))
 
                 data = self.connection.socket.recv(1024)
                 newdata = self.connection.socket.recv(1024)
@@ -132,3 +132,7 @@ class ConnectionHandler:
         else:
             self.connection.remove_socket()
             return self.joinLobby(hostname, port, lobbyname, password, username)
+
+if __name__ == "__main__":
+    c = ConnectionHandler()
+    c.joinLobby("localhost", 4445, "blah", "v", "ritendiu")

@@ -1,9 +1,11 @@
 import socket
 import time
+import array
 from threading import Thread
 import sys
-from src.MessageTyp import *
+from MessageTyp import LobbyConnect, ClientStatus
 import pickle
+
 
 class Server:
 
@@ -15,7 +17,7 @@ class Server:
 
     # Dictionary: key=ip of user, value=tupel(user-name,lobby)
     clients: dict = {}
-    
+
     # Dictionary: key=user-name, value=Status_Client
     users: dict = {}
 
@@ -35,7 +37,7 @@ class Server:
     # Lobby list
     lobbies: dict = {}
 
-    def serv(self): 
+    def serv(self):
         message_handler = MessageHandler(self)
         udp_server = UdpServer(message_handler, self.host, self.port_udp)
         tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
@@ -45,6 +47,7 @@ class Server:
         while True:
             time.sleep(1)
             print(self.lobbies)
+
 
 class TcpServer(Thread):
 
@@ -75,17 +78,17 @@ class TcpServer(Thread):
                 data.append(newdata)
                 newdata = conn.recv(1024)
 
-            typ, obj = pickle.loads(data)
+            obj = pickle.loads(data)
 
             data = self.message_handler.handle_message(obj)
 
             if data is LobbyConnect:
-                socket_.sendall(pickle.dumps(data, 4))
+                socket_.sendall((pickle.dumps(data)).encode('utf-8'))
             else:
                 socket_.sendall(data)
 
-
         conn.close()
+
 
 class UdpServer(Thread):
 
@@ -114,15 +117,16 @@ class UdpServer(Thread):
             data = conn.recvfrom(1024).decode()
             if not data:
                 break
-            print ("from connected  user: " + str(data))
+            print("from connected  user: " + str(data))
 
             data = str(data).upper()
-            print ("Received from User: " + str(data))
+            print("Received from User: " + str(data))
 
             data = input(" ? ")
             conn.send(data.encode())
 
         conn.close()
+
 
 class MessageHandler:
 
@@ -131,16 +135,14 @@ class MessageHandler:
     def __init__(self, server):
         self.server = server
 
-
     def handle_message(self, object_):
-        if object_ is LobbyConnect:
-            self.handle_lobby(object_)
-        elif object_ is ClientStatus:
-            self.handle_client_status(object_)
-
+        if type(object_) is LobbyConnect:
+            return self.handle_lobby(object_)
+        elif type(object_) is ClientStatus:
+            return self.handle_client_status(object_)
 
     def handle_lobby(self, lobby: LobbyConnect):
-        if not self.server.lobbies[lobby.lobby_name]:
+        if not lobby.lobby_name in self.server.lobbies:
             lobby.user_id = self.server.high_id
             self.server.high_id += 1
             self.server.lobbies[lobby.lobby_name] = lobby
@@ -150,5 +152,10 @@ class MessageHandler:
 
 
     def handle_client_status(self, client_status):
-        #self.server.users[client_status]
+        # self.server.users[client_status]
         pass
+
+
+if __name__ == "__main__":
+    server = Server()
+    server.serv()
