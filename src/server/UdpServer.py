@@ -1,19 +1,18 @@
 from threading import Thread
 import socket
 import sys
-from src.server.Server import Server
+
 
 class UdpServer(Thread):
 
     host = ''
     port = -1
-    server: Server
 
-    def __init__(self, server, host, port):
+    def __init__(self, message_handler, host, port):
         Thread.__init__(self)
         self.host = host
         self.port = port
-        self.server = server
+        self.message_handler = message_handler
 
     def run(self):
         try:

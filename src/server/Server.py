@@ -1,6 +1,7 @@
 import socket
 from src.server.UdpServer import UdpServer
 from src.server.TcpServer import TcpServer
+from src.server.MessageHandler import MessageHandler
 import time
 
 class Server:
@@ -28,11 +29,12 @@ class Server:
     port_udp = 4445
 
     # Lobby list
-    lobbies = []
+    lobbies: list = []
 
-    def run(self):
-        udp_server = UdpServer(self, self.host, self.port_udp)
-        tcp_server = TcpServer(self, self.host, self.port_tcp)
+    def run(self): 
+        message_handler = MessageHandler(self)
+        udp_server = UdpServer(message_handler, self.host, self.port_udp)
+        tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
         udp_server.start()
         tcp_server.start()
 

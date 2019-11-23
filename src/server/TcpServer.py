@@ -2,7 +2,6 @@ import sys
 from threading import Thread
 import socket
 import pickle
-from src.server.Server import Server
 from src.server.MessageHandler import MessageHandler
 
 
@@ -10,14 +9,12 @@ class TcpServer(Thread):
 
     host = ''
     port = -1
-    server: Server
 
-    def __init__(self, server, host, port):
+    def __init__(self, message_handler, host, port):
         Thread.__init__(self)
         self.host = host
         self.port = port
-        self.server = server
-        self.handler = MessageHandler(server)
+        self.message_handler = message_handler
 
     def run(self):
         socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,7 +36,7 @@ class TcpServer(Thread):
 
             typ, obj = pickle.loads(data)
 
-            self.handler.handle_message(obj)
+            self.message_handler.handle_message(obj)
 
 
         conn.close()
