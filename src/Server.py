@@ -39,9 +39,9 @@ class Server:
 
     def serv(self):
         message_handler = MessageHandler(self)
-        udp_server = UdpServer(message_handler, self.host, self.port_udp)
+        # udp_server = UdpServer(message_handler, self.host, self.port_udp)
         tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
-        udp_server.start()
+        # udp_server.start()
         tcp_server.start()
 
         while True:
@@ -82,12 +82,12 @@ class TcpServer(Thread):
 
             data = self.message_handler.handle_message(obj)
 
-            if data is LobbyConnect:
-                socket_.sendall((pickle.dumps(data)).encode('utf-8'))
+            if type(data) is LobbyConnect:
+                socket_.sendall(pickle.dumps(data))
             else:
                 socket_.sendall(data)
 
-        conn.close()
+            conn.close()
 
 
 class UdpServer(Thread):
@@ -149,7 +149,6 @@ class MessageHandler:
             return lobby
         else:
             return 1
-
 
     def handle_client_status(self, client_status):
         # self.server.users[client_status]
