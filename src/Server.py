@@ -22,6 +22,9 @@ class Server:
     # Dictionary: key=user-name, value=Boolean(changed in the last 2ms)
     changed: dict = {}
 
+    # Highest user id
+    high_id = 0
+
     # Host for the server
     host = "localhost"
 
@@ -30,7 +33,7 @@ class Server:
     port_udp = 4446
 
     # Lobby list
-    lobbies: list = []
+    lobbies: dict = {}
 
     def serv(self): 
         message_handler = MessageHandler(self)
@@ -74,7 +77,12 @@ class TcpServer(Thread):
 
             typ, obj = pickle.loads(data)
 
-            self.message_handler.handle_message(obj)
+            data = self.message_handler.handle_message(obj)
+
+            if data is LobbyConnect:
+                socket_.sendall(pickle.dumps(data, 4))
+            else:
+                socket_.sendall(data)
 
 
         conn.close()
@@ -131,8 +139,14 @@ class MessageHandler:
             self.handle_client_status(object_)
 
 
-    def handle_lobby(self, lobby):
-        self.server.lobbies.add(lobby)
+    def handle_lobby(self, lobby: LobbyConnect):
+        if not self.server.lobbies[lobby.lobby_name]:
+            lobby.user_id = self.server.high_id
+            self.server.high_id += 1
+            self.server.lobbies[lobby.lobby_name] = lobby
+            return lobby
+        else:
+            return 1
 
 
     def handle_client_status(self, client_status):
