@@ -1,7 +1,7 @@
 from threading import Thread
 import socket
 import sys
-import Server
+from src.server.Server import Server
 
 class UdpServer(Thread):
 

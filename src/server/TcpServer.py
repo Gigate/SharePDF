@@ -2,8 +2,8 @@ import sys
 from threading import Thread
 import socket
 import pickle
-import Server
-from MessageHandler import MessageHandler
+from src.server.Server import Server
+from src.server.MessageHandler import MessageHandler
 
 
 class TcpServer(Thread):
@@ -11,7 +11,6 @@ class TcpServer(Thread):
     host = ''
     port = -1
     server: Server
-    handler: MessageHandler
 
     def __init__(self, server, host, port):
         Thread.__init__(self)

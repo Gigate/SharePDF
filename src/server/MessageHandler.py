@@ -1,5 +1,5 @@
-from MessageHandler import Lobby, ClientStatus 
-import Server
+from src.MessageTyp import LobbyConnect, ClientStatus 
+from src.server.Server import Server
 
 class MessageHandler:
 
@@ -10,7 +10,7 @@ class MessageHandler:
 
 
     def handle_message(self, object_):
-        if object_ is Lobby:
+        if object_ is LobbyConnect:
             self.handle_lobby(object_)
         elif object_ is ClientStatus:
             self.handle_client_status(object_)

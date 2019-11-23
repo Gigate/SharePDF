@@ -1,9 +1,12 @@
 import socket
-from UdpServer import UdpServer
-from TcpServer import TcpServer
+from src.server.UdpServer import UdpServer
+from src.server.TcpServer import TcpServer
 import time
 
 class Server:
+
+    def __init__(self):
+        host = "blah"
 
     # Dictionary: key=lobby-name, value pdf
     pdfs: dict = {}
@@ -36,4 +39,7 @@ class Server:
         while True:
             time.sleep(1)
             print(self.lobbies)
+
+    def test(self):
+        print("test")
 
