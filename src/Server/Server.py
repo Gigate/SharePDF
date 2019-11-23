@@ -1,7 +1,7 @@
 import socket
 from UdpServer import UdpServer
 from TcpServer import TcpServer
-import ServerStatus
+import time
 
 class Server:
 
@@ -24,33 +24,16 @@ class Server:
     port_tcp = 4445
     port_udp = 4445
 
+    # Lobby list
+    lobbies = []
+
     def run(self):
-       # udp_server = UdpServer(self.host, self.port_udp)
-        tcp_server = TcpServer(self.host, self.port_tcp)
-      #  udp_server.start()
+        udp_server = UdpServer(self, self.host, self.port_udp)
+        tcp_server = TcpServer(self, self.host, self.port_tcp)
+        udp_server.start()
         tcp_server.start()
 
-Server().run()
-
-
-"""     def connect():
-        # TODO
-        pass
-
-    def disconnect():
-        # TODO
-        pass
-
-    def update_client_status():
-        # TODO
-        # users[user] = new Status_Client
-        pass
-
-    def send_server_status():
-        server_status = ServerStatus() 
-
-        for user in changed:
-            if changed[user] is True:
-                server_status.add_state(users[user]) """
-
+        while True:
+            time.sleep(1)
+            print(lobbies)
 
