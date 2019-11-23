@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Callable, Any
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent
@@ -29,6 +29,9 @@ class PdfDrawWidget(QWidget):
     __controlIsPressed = False
     __press_starting_pos: Tuple[float, float] = None
     __last_mousemove_event = None
+
+    #Notifyer
+    mouse_move_notifier: List[Callable[[], Any]] = []
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -179,6 +182,8 @@ class PdfDrawWidget(QWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         self.__last_mousemove_event = event
+        for c in self.mouse_move_notifier:
+            c()
         if self.__press_starting_pos is not None:
             pass
             # Todo Draw Rectangle around all Textboxes
