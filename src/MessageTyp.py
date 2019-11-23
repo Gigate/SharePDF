@@ -1,7 +1,7 @@
 from fitz import Document
 
-
 class Lobby:
+    abbr = "lby"
     pdf: Document = None
 
     def __init__(self, lobbyname: str, password: str):
@@ -9,8 +9,19 @@ class Lobby:
         self.lobbyname: str = lobbyname
 
 
-class ServerStatus:
+class ClientStatus:
+    abbr = "cst"
+    mouse_pos : (float,float)
+    marker_objects = []
+    test = None
 
+    def __init__(self, mouse_pos , marker_objects= []):
+        self.marker_objects = marker_objects
+        self.mouse_pos = mouse_pos
+
+
+class ServerStatus:
+    abbr = "cst"
     code: int
     message: str
     changed_users: dict = {}
@@ -22,8 +33,3 @@ class ServerStatus:
 
     def add_state(self, user_name, state: ClientStatus):
         dict[user_name] = state
-
-class ClientStatus:
-    y_axis : float
-    mouse_pos : (float,float)
-    marker_objects = []
