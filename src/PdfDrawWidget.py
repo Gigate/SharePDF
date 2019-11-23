@@ -3,12 +3,14 @@ from typing import List, Tuple
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QWidget, QScrollBar
-from fitz import Document, Pixmap, fitz
+from fitz import Document, Pixmap, fitz, Rect
 
 
 class PdfDrawWidget(QWidget):
     horizontalScrollbar = None
     verticalScrollbar = None
+
+    relativeMousePos: Tuple[float, float] = (0, 0)
 
     pdfVis: Document = None
     pageNum: int = 0
@@ -38,6 +40,7 @@ class PdfDrawWidget(QWidget):
     __zoomed = True
     __pdfImages: List[Tuple[int, QImage]] = []  # List of Tuples where first index is the hightoffset
     __pageoffsets: List[int] = []
+    __updatePagenum = True
 
     def __drawPDF(self, event: QPaintEvent):
         """Draws the Pdf centered onto the self Object as long as the self.pdfVis variable isn't None.
@@ -45,6 +48,7 @@ class PdfDrawWidget(QWidget):
         if self.pdfVis is not None:
 
             if self.__viewchanged:
+
                 if self.__zoomed:
                     hightCount = 0
                     self.__pageoffsets = [0]
@@ -58,6 +62,16 @@ class PdfDrawWidget(QWidget):
                     else:
                         self.verticalScrollbar.setVisible(False)
                         self.verticalScrollbar.setRange(0, 0)
+                    self.__zoomed = False
+
+                prev_pagenum = next(num for num, height in enumerate(self.__pageoffsets, start=-1) if
+                                    height >= self.verticalScrollbar.value())
+                if self.__updatePagenum:
+                    if self.pageNum != prev_pagenum:
+                        new_scroll_value = self.__pageoffsets[self.pageNum] - self.__pageoffsets[prev_pagenum] + self.verticalScrollbar.value()
+                        self.verticalScrollbar.setValue(new_scroll_value)
+                else:
+                    self.pageNum = prev_pagenum
 
             mat = fitz.Matrix(self.zoom, self.zoom)
 
@@ -72,16 +86,19 @@ class PdfDrawWidget(QWidget):
 
             for falseI, page in enumerate(self.pdfVis.pages(lowestVisablePage, highestVisablePage)):
                 i = falseI + lowestVisablePage
-                clipx0 = (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) \
-                    if (
-                               page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
+
+                #Calculate Rectangle Coordinates for clipping
+                clipx0 = (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
+                    if (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
                 clipy0 = (self.verticalScrollbar.value() - self.__pageoffsets[i]) / self.zoom \
                     if self.verticalScrollbar.value() >= self.__pageoffsets[i] else 0
-                # clipx1 =
-                # clipy1 =
-                print(clipy0, clipx0)
+                clipx1 = (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
+                    if (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom < page.rect.width else page.rect.width
+                clipy1 = (self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i]) / self.zoom \
+                    if self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i] <= page.rect.height*self.zoom else page.rect.height
+
                 # print(self.verticalScrollbar.value())
-                pix: Pixmap = page.getPixmap(mat)  # , clip=Rect(0,0,110,110))
+                pix: Pixmap = page.getPixmap(mat)#, clip=Rect(clipx0, clipy0, clipx1, clipy1))
                 fmt = QImage.Format_RGBA8888 if pix.alpha else QImage.Format_RGB888
                 self.__pdfImages.append(
                     (self.__pageoffsets[i], QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)))
@@ -132,6 +149,7 @@ class PdfDrawWidget(QWidget):
         self.__pressStart = (event.x(), event.y())
 
     def mouseMoveEvent(self, event: QMouseEvent):
+
         if self.__pressStart is not None:
             pass
             # Todo Draw Rectangle around all Textboxes
@@ -139,3 +157,13 @@ class PdfDrawWidget(QWidget):
     def loadDocument(self, path: str):
         self.pdfVis = fitz.Document(path)
         self.update()
+
+    def updatePage(self, newPageNum: int=None):
+        if newPageNum is not None:
+            self.pageNum = newPageNum
+        self.__updatePagenum = True
+        self.update()
+
+    def __updateRelativeMousePos(self, event: QMouseEvent):
+        #Todo calculate Mouse pos
+        pass
