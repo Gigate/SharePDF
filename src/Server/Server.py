@@ -35,5 +35,5 @@ class Server:
 
         while True:
             time.sleep(1)
-            print(lobbies)
+            print(self.lobbies)
 
