@@ -1,5 +1,6 @@
 from fitz import Document
 
+
 class Lobby:
     abbr = "lby"
     pdf: Document = None
@@ -11,11 +12,11 @@ class Lobby:
 
 class ClientStatus:
     abbr = "cst"
-    mouse_pos : (float,float)
+    mouse_pos: (float, float)
     marker_objects = []
     test = None
 
-    def __init__(self, mouse_pos , marker_objects= []):
+    def __init__(self, mouse_pos, marker_objects=[]):
         self.marker_objects = marker_objects
         self.mouse_pos = mouse_pos
 
@@ -30,6 +31,3 @@ class ServerStatus:
     def __init__(self, code=0, message=None):
         self.code = code
         self.message = message
-
-    def add_state(self, user_name, state: ClientStatus):
-        dict[user_name] = state
