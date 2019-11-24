@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout,
     QFileDialog, QLineEdit, QSizePolicy
 
 from CentraWidget import CentralWidget
-from src.ConnectionHandler import ConnectionHandler
+from ConnectionHandler import ConnectionHandler
 from PdfDrawWidget import PdfDrawWidget
 
 

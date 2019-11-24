@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, Q
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
 
-from src.MessageTyp import ClientStatus
+from MessageTyp import ClientStatus
 
 
 class PdfDrawWidget(QWidget):
