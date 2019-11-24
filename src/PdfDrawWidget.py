@@ -3,7 +3,7 @@ from typing import List, Tuple, Callable, Any
 
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen, QPolygon, \
-    QBrush
+    QBrush, QPalette
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
 
@@ -36,6 +36,9 @@ class PdfDrawWidget(QWidget):
 
     # Notifier
     mouse_move_notifier_send: Callable[[], Any] = None
+
+    # Trigger
+    call_page_num_changed : Callable = None
 
     # Multi user
     external_client_dict: dict = None
@@ -142,6 +145,8 @@ class PdfDrawWidget(QWidget):
                         self.__updatePagenum = False
                 else:
                     self.pageNum = prev_pagenum
+                    if self.call_page_num_changed:
+                        self.call_page_num_changed()
 
             mat = fitz.Matrix(self.zoom, self.zoom)
 
@@ -184,10 +189,14 @@ class PdfDrawWidget(QWidget):
                 self.__viewchanged = False
 
             self.painter.begin(self)
-            for i, (y, img) in enumerate(self.__pdfImages):
+            for y, img in self.__pdfImages:
                 self.painter.drawImage(self.painter.viewport().width() / 2 - img.width() / 2
                                        - self.horizontalScrollbar.value(),
-                                       y + self.PAGESEPERATIONHEIGTH * i - self.verticalScrollbar.value(), img)
+                                       y - self.verticalScrollbar.value(), img)
+                self.painter.drawLine(self.painter.viewport().width() / 2 - img.width() / 2
+                                       - self.horizontalScrollbar.value(),y,
+                                      self.painter.viewport().width() / 2 + img.width() / 2
+                                      - self.horizontalScrollbar.value(), y)
             self.painter.end()
             self.__pdf_is_rendered = True
         else:
