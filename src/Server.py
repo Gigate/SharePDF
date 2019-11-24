@@ -6,6 +6,8 @@ import concurrent.futures
 import sys
 from MessageTyp import LobbyConnect, ClientStatus
 import pickle
+import ssl
+from dtls import do_patch
 
 
 class Server:
@@ -51,11 +53,15 @@ class TcpServer(Thread):
     port = -1
     socket_: socket
 
-    def __init__(self, message_handler, host, port):
+    def __init__(self, message_handler, host, port, tls = False):
         Thread.__init__(self)
         self.host = host
         self.port = port
         self.message_handler = message_handler
+        self.tls = tls
+        if tls:
+            self.context = ssl.create_default_context(purpose=ssl.PROTOCOL_TLS_SERVER)
+            self.context.load_cert_chain('/path/to/certchain.pem', '/path/to/private.key')
 
     def run(self):
         self.socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,6 +73,9 @@ class TcpServer(Thread):
         while True:
 
             self.socket_.listen(4)
+
+            if self.tls:
+                self.socket_ = self.context.wrap_socket(self.socket_, server_side=True)
 
             conn, addr = self.socket_.accept()
             # let a tcp-connection thread handle the received data
@@ -109,7 +118,7 @@ class UdpServer(Thread):
     port = -1
     socket_: socket.socket
 
-    def __init__(self, message_handler, host, port, server: Server):
+    def __init__(self, message_handler, host, port, server: Server, tls=False):
         Thread.__init__(self)
         self.host = host
         self.port = port
@@ -118,6 +127,12 @@ class UdpServer(Thread):
 
         self.socket_ = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket_.bind((self.host, self.port))
+
+        if tls:
+            do_patch()
+            self.context = ssl.create_default_context(purpose=ssl.PROTOCOL_TLS_SERVER)
+            self.context.load_cert_chain('/path/to/certchain.pem', '/path/to/private.key')
+            self.socket_ = self.context.wrap_socket(self.socket_)
 
     def _send_(self, tupel):
         send_data, user = tupel

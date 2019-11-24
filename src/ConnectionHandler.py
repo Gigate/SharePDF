@@ -9,6 +9,8 @@ from PdfDrawWidget import PdfDrawWidget
 from threading import Thread
 import fitz
 import time
+import ssl
+from dtls import do_patch
 
 
 class _Connection:
@@ -18,11 +20,12 @@ class _Connection:
     hostname = None
     port = None
 
-    def create_tcp_socket(self, hostname, port, timeout=100):
+    def create_tcp_socket(self, hostname, port, timeout=100, tls=False):
         try:
             self.socket = socket(AF_INET, SOCK_STREAM)
             self.socket.settimeout(timeout)
-            self.socket.connect((hostname, port))
+            self.socket.create_connection((hostname, port))
+            if tls: self.socket = ssl.create_default_context().wrap_socket(self.socket)
             self.is_tcp_socket = True
         except OSError:
             self.remove_socket()
@@ -33,11 +36,14 @@ class _Connection:
             self.socket.close()
             self.socket = None
 
-    def create_udp_socket(self, hostname, port):
+    def create_udp_socket(self, hostname, port, tls=False):
         try:
             self.hostname = hostname
             self.port = port
             self.socket = socket(AF_INET, SOCK_DGRAM)
+            if tls:
+                do_patch()
+                self.socket = ssl.wrap_socket(self.socket)
             self.socket.connect((hostname, port))
             self.is_tcp_socket = False
         except OSError:
