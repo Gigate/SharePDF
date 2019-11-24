@@ -12,8 +12,10 @@ class Server:
 
     def __init__(self):
         self.message_handler = MessageHandler(self)
-        self.udp_server = UdpServer(self.message_handler, self.host, self.port_udp, self)
-        self.tcp_server = TcpServer(self.message_handler, self.host, self.port_tcp)
+        self.udp_server = UdpServer(
+            self.message_handler, self.host, self.port_udp, self)
+        self.tcp_server = TcpServer(
+            self.message_handler, self.host, self.port_tcp)
         self.udp_server.start()
         self.tcp_server.start()
 
@@ -155,17 +157,18 @@ class MessageHandler:
         # if the received lobby is a new lobby
         if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:
             lobby_connect.user_id = 0
-            lobby_connect.pdf = None
             self.server._lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
                 lobby_connect.pdf, lobby_connect.lobby_name, lobby_connect.user_id, lobby_connect.password)
+            lobby_connect.pdf = None
             return lobby_connect
-        elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password is self.server._lobbies[lobby_connect.lobby_name].password:
+        elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password == self.server._lobbies[lobby_connect.lobby_name].password:
             lobby_connect.user_id = self.server._lobbies[lobby_connect.lobby_name].high_id
             self.server._lobbies[lobby_connect.lobby_name].high_id += 1
             lobby_connect.pdf = self.server._lobbies[lobby_connect.lobby_name].pdf
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
             self.server._lobbies[lobby_connect.lobby_name].changed[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
+            return lobby_connect
         else:
             return 1
 

@@ -1,5 +1,6 @@
 import pickle as pickle
 import threading
+from io import BytesIO
 from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM, timeout
 from typing import Optional, Callable, Any, Iterable, Mapping, Dict
 from fitz import Document
@@ -150,7 +151,7 @@ class ConnectionHandler:
                     new_data = self.connection.socket.recv(1024)
 
                     while len(new_data) > 0:
-                        data.append(new_data)
+                        data += new_data
                         new_data = self.connection.socket.recv(1024)
                 except timeout:
                     self.connection.socket.settimeout(old_timeout)
@@ -197,19 +198,19 @@ class ConnectionHandler:
                     new_data = self.connection.socket.recv(1024)
 
                     while len(new_data) > 0:
-                        data.append(new_data)
+                        data += new_data
                         new_data = self.connection.socket.recv(1024)
                 except timeout:
                     self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
-                if obj is int:
+                print("object", obj)
+                if type(obj) is int:
                     self.connection.remove_socket()
                     return False
-                if obj is LobbyConnect:
+                if type(obj) is LobbyConnect:
                     self.user_id = obj.user_id
-                    self.pdf_widget.pdfVis = fitz.open("pdf", obj.pdf)
-                    self.pdf_widget.multi_user_mode = True
+                    self.pdf_widget.pdfVis = fitz.open(None, obj.pdf, "pdf")
                     self.pdf_widget.update()
                     self.connection.create_udp_socket(hostname, port+1)
                     self.udp_thread_recv = UdpReceiveThread(
@@ -225,7 +226,7 @@ class ConnectionHandler:
         else:
             self.connection.remove_socket()
             return self.join_lobby(hostname, port, lobby_name, password, username)
-
+        return True
 
 if __name__ == "__main__":
     c = ConnectionHandler()

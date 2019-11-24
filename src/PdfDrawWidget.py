@@ -3,7 +3,7 @@ from typing import List, Tuple, Callable, Any
 
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen, QPolygon, \
-    QBrush
+    QBrush, QPalette, QFont
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
 
@@ -25,7 +25,7 @@ class PdfDrawWidget(QWidget):
     __pdf_is_rendered = False
     __viewchanged = True
     __zoomed = True
-    __pdfImages: List[Tuple[int, QImage]] = []  # List of Tuples where first index is the hightoffset
+    __pdfImages: List[Tuple[int, int, QImage]] = []  # List of Tuples where first index is the hightoffset
     __pageoffsets: List[int] = []
     __updatePagenum = True
 
@@ -37,10 +37,14 @@ class PdfDrawWidget(QWidget):
     # Notifier
     mouse_move_notifier_send: Callable[[], Any] = None
 
+    # Trigger
+    call_page_num_changed : Callable = None
+
     # Multi user
     external_client_dict: dict = None
     user_color_dict: dict = dict()
     multi_user_mode = False
+    render_username = True
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -84,11 +88,12 @@ class PdfDrawWidget(QWidget):
             if key not in self.user_color_dict:
                 self.user_color_dict[key] = QColor("#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)]))
 
-            x_global, y_global = val.mouse_pos
-            x_global = x_global * self.zoom + self.width()/2 - self.horizontalScrollbar.value()
-            y_global = y_global * self.zoom - self.verticalScrollbar.value()
+            if val:
+                x_global, y_global = val.mouse_pos
+                x_global = x_global * self.zoom + self.width()/2 - self.horizontalScrollbar.value()
+                y_global = y_global * self.zoom - self.verticalScrollbar.value()
 
-            self.__draw_courser(self.user_color_dict[key], (x_global, y_global), val.user_name)
+                self.__draw_courser(self.user_color_dict[key], (x_global, y_global), val.user_name)
 
 
     def __draw_courser(self, color: QColor, point: Tuple[int, int], username: str):
@@ -109,6 +114,9 @@ class PdfDrawWidget(QWidget):
         points.translate(point[0], point[1])
 
         self.painter.drawPolygon(points)
+        if self.render_username:
+            self.painter.setFont(QFont('Decorative', 10))
+            self.painter.drawText(15 + point[0], 25 + point[1], username)
         self.painter.end()
 
     def __drawPDF(self, event: QPaintEvent):
@@ -133,15 +141,20 @@ class PdfDrawWidget(QWidget):
                         self.verticalScrollbar.setRange(0, 0)
                     self.__zoomed = False
 
-                prev_pagenum = next(num for num, height in enumerate(self.__pageoffsets, start=-1) if
+                prev_pagenum = next(num for num, height in enumerate(self.__pageoffsets[1:]) if
                                     height >= self.verticalScrollbar.value())
                 if self.__updatePagenum:
                     if self.pageNum != prev_pagenum:
-                        new_scroll_value = self.__pageoffsets[self.pageNum] - self.__pageoffsets[prev_pagenum] + self.verticalScrollbar.value()
+                        new_scroll_value = self.__pageoffsets[self.pageNum+1] - self.__pageoffsets[prev_pagenum+1] + self.verticalScrollbar.value()
                         self.verticalScrollbar.setValue(new_scroll_value)
-                        self.__updatePagenum = False
-                else:
+                        self.verticalScrollbar.update()
+                        if self.call_page_num_changed:
+                            self.call_page_num_changed()
+                    self.__updatePagenum = False
+                elif self.pageNum != prev_pagenum:
                     self.pageNum = prev_pagenum
+                    if self.call_page_num_changed:
+                        self.call_page_num_changed()
 
             mat = fitz.Matrix(self.zoom, self.zoom)
 
@@ -157,25 +170,15 @@ class PdfDrawWidget(QWidget):
             for falseI, page in enumerate(self.pdfVis.pages(lowestVisablePage, highestVisablePage)):
                 i = falseI + lowestVisablePage
 
-                #Calculate Rectangle Coordinates for clipping
-                clipx0 = (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
-                    if (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
-                clipy0 = (self.verticalScrollbar.value() - self.__pageoffsets[i]) / self.zoom \
-                    if self.verticalScrollbar.value() >= self.__pageoffsets[i] else 0
-                clipx1 = (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
-                    if (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom < page.rect.width else page.rect.width
-                clipy1 = (self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i]) / self.zoom \
-                    if self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i] <= page.rect.height*self.zoom else page.rect.height
-
-                # print(self.verticalScrollbar.value())
-                pix: Pixmap = page.getPixmap(mat)#, clip=Rect(clipx0, clipy0, clipx1, clipy1))
+                # Todo Clipping for better Performance
+                pix: Pixmap = page.getPixmap(mat)
                 fmt = QImage.Format_RGBA8888 if pix.alpha else QImage.Format_RGB888
                 self.__pdfImages.append(
-                    (self.__pageoffsets[i], QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)))
+                    (self.__pageoffsets[i], self.__pageoffsets[i+1], QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)))
 
-            if self.__pdfImages[0][1].width() > self.width():
-                self.horizontalScrollbar.setRange(self.width() - self.__pdfImages[0][1].width(),
-                                                  self.__pdfImages[0][1].width() - self.width())
+            if self.__pdfImages[0][2].width() > self.width():
+                self.horizontalScrollbar.setRange(self.width() - self.__pdfImages[0][2].width(),
+                                                  self.__pdfImages[0][2].width() - self.width())
                 self.horizontalScrollbar.setVisible(True)
             else:
                 self.horizontalScrollbar.setVisible(False)
@@ -183,11 +186,18 @@ class PdfDrawWidget(QWidget):
 
                 self.__viewchanged = False
 
+            seperationlines: List[Tuple[int, int, int, int]] = []
             self.painter.begin(self)
-            for i, (y, img) in enumerate(self.__pdfImages):
+            for y, y1, img in self.__pdfImages:
                 self.painter.drawImage(self.painter.viewport().width() / 2 - img.width() / 2
                                        - self.horizontalScrollbar.value(),
-                                       y + self.PAGESEPERATIONHEIGTH * i - self.verticalScrollbar.value(), img)
+                                       y - self.verticalScrollbar.value(), img)
+                seperationlines.append((self.painter.viewport().width() / 2 - img.width() / 2
+                                       - self.horizontalScrollbar.value(), y1 - self.verticalScrollbar.value(),
+                                      self.painter.viewport().width() / 2 + img.width() / 2
+                                      - self.horizontalScrollbar.value(), y1 - self.verticalScrollbar.value()))
+            for x0, y0, x1, y1 in seperationlines:
+                self.painter.drawLine(x0, y0, x1, y1)
             self.painter.end()
             self.__pdf_is_rendered = True
         else:
@@ -239,9 +249,10 @@ class PdfDrawWidget(QWidget):
         if newPageNum is not None:
             self.pageNum = newPageNum
         if newPageDelta is not None and self.pdfVis is not None:
-            if self.pageNum - newPageDelta >= 0 and self.pageNum - newPageDelta < self.pdfVis.pageCount:
+            if 0 <= self.pageNum + newPageDelta < self.pdfVis.pageCount:
                 self.pageNum += newPageDelta
         self.__updatePagenum = True
+        self.__viewchanged = True
         self.update()
 
 
