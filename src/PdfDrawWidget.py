@@ -88,11 +88,12 @@ class PdfDrawWidget(QWidget):
             if key not in self.user_color_dict:
                 self.user_color_dict[key] = QColor("#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)]))
 
-            x_global, y_global = val.mouse_pos
-            x_global = x_global * self.zoom + self.width()/2 - self.horizontalScrollbar.value()
-            y_global = y_global * self.zoom - self.verticalScrollbar.value()
+            if val:
+                x_global, y_global = val.mouse_pos
+                x_global = x_global * self.zoom + self.width()/2 - self.horizontalScrollbar.value()
+                y_global = y_global * self.zoom - self.verticalScrollbar.value()
 
-            self.__draw_courser(self.user_color_dict[key], (x_global, y_global), val.user_name)
+                self.__draw_courser(self.user_color_dict[key], (x_global, y_global), val.user_name)
 
 
     def __draw_courser(self, color: QColor, point: Tuple[int, int], username: str):
@@ -140,14 +141,17 @@ class PdfDrawWidget(QWidget):
                         self.verticalScrollbar.setRange(0, 0)
                     self.__zoomed = False
 
-                prev_pagenum = next(num for num, height in enumerate(self.__pageoffsets, start=-1) if
+                prev_pagenum = next(num for num, height in enumerate(self.__pageoffsets[1:]) if
                                     height >= self.verticalScrollbar.value())
                 if self.__updatePagenum:
                     if self.pageNum != prev_pagenum:
-                        new_scroll_value = self.__pageoffsets[self.pageNum] - self.__pageoffsets[prev_pagenum] + self.verticalScrollbar.value()
+                        new_scroll_value = self.__pageoffsets[self.pageNum+1] - self.__pageoffsets[prev_pagenum+1] + self.verticalScrollbar.value()
                         self.verticalScrollbar.setValue(new_scroll_value)
-                        self.__updatePagenum = False
-                else:
+                        self.verticalScrollbar.update()
+                        if self.call_page_num_changed:
+                            self.call_page_num_changed()
+                    self.__updatePagenum = False
+                elif self.pageNum != prev_pagenum:
                     self.pageNum = prev_pagenum
                     if self.call_page_num_changed:
                         self.call_page_num_changed()
@@ -245,9 +249,10 @@ class PdfDrawWidget(QWidget):
         if newPageNum is not None:
             self.pageNum = newPageNum
         if newPageDelta is not None and self.pdfVis is not None:
-            if self.pageNum - newPageDelta >= 0 and self.pageNum - newPageDelta < self.pdfVis.pageCount:
+            if 0 <= self.pageNum + newPageDelta < self.pdfVis.pageCount:
                 self.pageNum += newPageDelta
         self.__updatePagenum = True
+        self.__viewchanged = True
         self.update()
 
 

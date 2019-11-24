@@ -1,5 +1,6 @@
 import pickle as pickle
 import threading
+from io import BytesIO
 from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM, timeout
 from typing import Optional, Callable, Any, Iterable, Mapping, Dict
 from fitz import Document
@@ -60,8 +61,7 @@ class UdpSendThread(Thread):
         while True:
             if self.con.socket is not None:
                 self.waiting.wait()
-                status = ClientStatus(
-                    self.pdf_widget.relativeMousePos, self.user_id, self.username)
+                status = ClientStatus(self.pdf_widget.relativeMousePos, self.user_id, self.username)
                 self.con.socket.sendall(pickle.dumps(status))
                 time.sleep(0.02)
             else:
@@ -114,8 +114,7 @@ class UdpReceiveThread(Thread):
                         self.pdf_widget.multi_user_mode = True
                         self.pdf_widget.update()
                 else:
-                    print(
-                        "Could not parse server data (Invalid type) actual type is:", type(obj))
+                    print("Could not parse server data (Invalid type) actual type is:", type(obj))
                     break
             else:
                 break
@@ -152,7 +151,7 @@ class ConnectionHandler:
                     new_data = self.connection.socket.recv(1024)
 
                     while len(new_data) > 0:
-                        data.append(new_data)
+                        data += new_data
                         new_data = self.connection.socket.recv(1024)
                 except timeout:
                     self.connection.socket.settimeout(old_timeout)
@@ -182,6 +181,7 @@ class ConnectionHandler:
             return self.request_lobby_creation(hostname, port, lobby_name, password, username, pdf)
         return True
 
+
     def join_lobby(self, hostname, port, lobby_name, password, username) -> bool:
         if self.connection is None:
             self.connection = _Connection()
@@ -198,20 +198,19 @@ class ConnectionHandler:
                     new_data = self.connection.socket.recv(1024)
 
                     while len(new_data) > 0:
-                        data.append(new_data)
+                        data += new_data
                         new_data = self.connection.socket.recv(1024)
                 except timeout:
                     self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
                 print("object", obj)
-                if obj is int:
+                if type(obj) is int:
                     self.connection.remove_socket()
                     return False
-                if obj is LobbyConnect:
+                if type(obj) is LobbyConnect:
                     self.user_id = obj.user_id
-                    self.pdf_widget.pdfVis = fitz.open("pdf", obj.pdf)
-                    self.pdf_widget.multi_user_mode = True
+                    self.pdf_widget.pdfVis = fitz.open(None, obj.pdf, "pdf")
                     self.pdf_widget.update()
                     self.connection.create_udp_socket(hostname, port+1)
                     self.udp_thread_recv = UdpReceiveThread(
