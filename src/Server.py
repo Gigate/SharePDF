@@ -101,10 +101,15 @@ class TcpConnection(Thread):
 
     def run(self):
         data = self.conn.recv(1024)
-        newdata = self.conn.recv(1024)
-        while len(newdata) > 0:
-            data.append(newdata)
-            newdata = self.conn.recv(1024)
+        old_timeout = self.conn.gettimeout()
+        self.conn.socket.settimeout(0.2)
+        try:
+            new_data = self.conn.recv(1024)
+            while len(new_data) > 0:
+                data.append(new_data)
+                new_data = self.conn.recv(1024)
+        except socket.timeout:
+            self.conn.settimeout(old_timeout)
         obj = pickle.loads(data)
         data = self.server.message_handler.handle_message(obj)
         if type(data) is LobbyConnect:

@@ -1,6 +1,6 @@
 import pickle as pickle
 import threading
-from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM
+from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM, timeout
 from typing import Optional, Callable, Any, Iterable, Mapping, Dict
 from fitz import Document
 from src.MessageTyp import LobbyConnect, ClientStatus, ServerStatus
@@ -10,7 +10,7 @@ import time
 
 
 class _Connection:
-    socket: socket = None
+    socket = None
     is_tcp_socket = False
 
     hostname = None
@@ -72,7 +72,6 @@ class UdpSendThread(Thread):
 
 
 class UdpReceiveThread(Thread):
-
     complete_dict: Dict = None
 
     def __init__(self, pdf_widget: PdfDrawWidget, con: _Connection, user_id: int):
@@ -126,21 +125,26 @@ class ConnectionHandler:
     def __init__(self, pdf_widget: PdfDrawWidget = None):
         self.pdf_widget: PdfDrawWidget = pdf_widget
 
-    def request_lobby_creation(self, hostname, port, lobbyname, password, username, pdf) -> bool:
+    def request_lobby_creation(self, hostname, port, lobby_name, password, username, pdf) -> bool:
         if self.connection is None:
             self.connection = _Connection()
         if self.connection.socket is None:
             try:
                 self.connection.create_tcp_socket(hostname, port)
-                lobbyconnect = LobbyConnect(lobbyname, password, username, pdf)
-                self.connection.socket.sendall(pickle.dumps(lobbyconnect, 4))
+                lobby_connect = LobbyConnect(lobby_name, password, username, pdf)
+                self.connection.socket.sendall(pickle.dumps(lobby_connect, 4))
 
                 data = self.connection.socket.recv(1024)
-                newdata = self.connection.socket.recv(1024)
+                old_timeout = self.connection.socket.gettimeout()
+                self.connection.socket.settimeout(0.2)
+                try:
+                    new_data = self.connection.socket.recv(1024)
 
-                while len(newdata) > 0:
-                    data.append(newdata)
-                    newdata = self.connection.socket.recv(1024)
+                    while len(new_data) > 0:
+                        data.append(new_data)
+                        new_data = self.connection.socket.recv(1024)
+                except timeout:
+                    self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
 
@@ -163,24 +167,28 @@ class ConnectionHandler:
             self.connection.remove_socket()
             return self.request_lobby_creation(hostname, port, password, username, pdf)
 
-    def join_lobby(self, hostname, port, lobbyname, password, username) -> bool:
+    def join_lobby(self, hostname, port, lobby_name, password, username) -> bool:
         if self.connection is None:
             self.connection = _Connection()
         if self.connection.socket is None:
             try:
                 self.connection.create_tcp_socket(hostname, port)
-                lobby_connect = LobbyConnect(lobbyname, password, username)
+                lobby_connect = LobbyConnect(lobby_name, password, username)
                 self.connection.socket.sendall(pickle.dumps(lobby_connect, 4))
 
                 data = self.connection.socket.recv(1024)
-                newdata = self.connection.socket.recv(1024)
+                old_timeout = self.connection.socket.gettimeout()
+                self.connection.socket.settimeout(0.2)
+                try:
+                    new_data = self.connection.socket.recv(1024)
 
-                while len(newdata) > 0:
-                    data.append(newdata)
-                    newdata = self.connection.socket.recv(1024)
+                    while len(new_data) > 0:
+                        data.append(new_data)
+                        new_data = self.connection.socket.recv(1024)
+                except timeout:
+                    self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
-
                 if obj is int:
                     self.connection.remove_socket()
                     return False
@@ -199,7 +207,8 @@ class ConnectionHandler:
                 raise OSError
         else:
             self.connection.remove_socket()
-            return self.join_lobby(hostname, port, lobbyname, password, username)
+            return self.join_lobby(hostname, port, lobby_name, password, username)
+
 
 if __name__ == "__main__":
     c = ConnectionHandler()
