@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QApplication, QDialogButtonBox, QVBoxLayout
     QPushButton, QLabel, QMessageBox, QCheckBox
 
 
-class CreateDialog(QDialog):
+class CreateLobbyDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.title = 'JoinLobby'
@@ -42,9 +42,9 @@ class CreateDialog(QDialog):
 
         #Button
         self.button_ok = QPushButton('OK', self)
-        self.button_ok.move(self.width*0.20, (self.height - 40))
+        self.button_ok.move(round(self.width*0.20), (self.height - 40))
         self.button_cancel = QPushButton('Cancel', self)
-        self.button_cancel.move(self.width * 0.60, (self.height - 40))
+        self.button_cancel.move(round(self.width * 0.60), (self.height - 40))
         self.button_ok.clicked.connect(self.on_click_ok)
         self.button_cancel.clicked.connect(self.close)
         self.button_pdf_chooser = QPushButton('Pdf-Chooser', self)
@@ -73,10 +73,36 @@ class CreateDialog(QDialog):
         if self.create.isChecked():
             print("Open Pdf-Chooser")
 
+class ExitLobbyDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.title = 'ExitLobby'
+        self.left = 100
+        self.top = 100
+        self.width = 250
+        self.height = 100
+        self.initUI()
+
+        #Label
+        label = QLabel(self)
+        label.setText('Are you sure you want to leave Lobby? ') # + Lobbyname
+        label.move(20, 20)
+
+        # Button
+        self.button_ok = QPushButton('OK', self)
+        self.button_ok.move(round(self.width * 0.15), (self.height - 40))
+        self.button_cancel = QPushButton('Cancel', self)
+        self.button_cancel.move(round(self.width * 0.55), (self.height - 40))
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = CreateDialog()
-    ex.show()
+    #ex = CreateDialog()
+    #ex.show()
+    ey = ExitLobbyDialog()
+    ey.show()
     sys.exit(app.exec_())
