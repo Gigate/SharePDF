@@ -157,9 +157,9 @@ class MessageHandler:
         # if the received lobby is a new lobby
         if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:
             lobby_connect.user_id = 0
-            lobby_connect.pdf = None
             self.server._lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
                 lobby_connect.pdf, lobby_connect.lobby_name, lobby_connect.user_id, lobby_connect.password)
+            lobby_connect.pdf = None
             return lobby_connect
         elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password == self.server._lobbies[lobby_connect.lobby_name].password:
             lobby_connect.user_id = self.server._lobbies[lobby_connect.lobby_name].high_id
@@ -168,6 +168,7 @@ class MessageHandler:
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
             self.server._lobbies[lobby_connect.lobby_name].changed[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
+            print(lobby_connect.pdf)
             return lobby_connect
         else:
             return 1
