@@ -9,7 +9,7 @@ from CentraWidget import CentralWidget
 from ConnectionHandler import ConnectionHandler
 from PdfDrawWidget import PdfDrawWidget
 
-from src.CreateDialog import CreateLobbyDialog, ExitLobbyDialog
+from CreateDialog import CreateLobbyDialog, ExitLobbyDialog
 
 
 class MainUI(QMainWindow):
@@ -121,9 +121,6 @@ class MainUI(QMainWindow):
         else:
             print("connector method", self.con_handler.join_lobby(
                 "localhost", 4454, "test3", "password", "Joshua"))
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
-        if fname[0]:
-            self.pdfWidget.loadDocument(fname[0])
 
     def getJoin(self):
         dialog = CreateLobbyDialog(self)
