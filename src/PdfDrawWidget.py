@@ -13,7 +13,7 @@ class PdfDrawWidget(QWidget):
     horizontalScrollbar = None
     verticalScrollbar = None
 
-    #Pdf rendering properties
+    # Pdf rendering properties
     pdfVis: Document = None
     pageNum: int = 0
     zoom: float = 1
@@ -25,13 +25,16 @@ class PdfDrawWidget(QWidget):
     __pageoffsets: List[int] = []
     __updatePagenum = True
 
-    #Mouse and Keyboard vars
+    # Mouse and Keyboard vars
     __controlIsPressed = False
     __press_starting_pos: Tuple[float, float] = None
     __last_mousemove_event = None
 
-    #Notifyer
-    mouse_move_notifier: List[Callable[[], Any]] = []
+    # Notifier
+    mouse_move_notifier_send: Callable[[], Any] = None
+
+    # Multi user
+    external_client_dict = None
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -182,8 +185,8 @@ class PdfDrawWidget(QWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         self.__last_mousemove_event = event
-        for c in self.mouse_move_notifier:
-            c()
+        if self.mouse_move_notifier_send is not None:
+            self.mouse_move_notifier_send()
         if self.__press_starting_pos is not None:
             pass
             # Todo Draw Rectangle around all Textboxes
