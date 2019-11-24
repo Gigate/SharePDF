@@ -1,7 +1,5 @@
 from typing import Tuple
 
-from fitz import Document
-
 
 class LobbyConnect:
     pdf: bytes = None
