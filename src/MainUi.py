@@ -5,8 +5,9 @@ from PyQt5.QtGui import QKeyEvent, QIntValidator
 from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QWidget, QToolBar, QAction, qApp, \
     QFileDialog, QLineEdit, QSizePolicy
 
-from src.CentraWidget import CentralWidget
-from src.PdfDrawWidget import PdfDrawWidget
+from CentraWidget import CentralWidget
+from src.ConnectionHandler import ConnectionHandler
+from PdfDrawWidget import PdfDrawWidget
 
 
 class MainUI(QMainWindow):
@@ -26,6 +27,9 @@ class MainUI(QMainWindow):
 
         # Create the pdfWiget which Displays the PDF
         self.pdfWidget = PdfDrawWidget(centralwidget)
+
+        # Create Connectionhandler
+        self.con_handler = ConnectionHandler(self.pdfWidget)
 
         # Set Layout Design
         horizontalLayout.addWidget(self.pdfWidget.verticalScrollbar)
@@ -76,6 +80,7 @@ class MainUI(QMainWindow):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
             self.pdfWidget.loadDocument(fname[0])
+            print("connector method", self.con_handler.request_lobby_creation("localhost", 4454, "test", "password", "Tim", fname[0]))
             
 
 

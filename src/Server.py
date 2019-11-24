@@ -21,8 +21,8 @@ class Server:
     host = "localhost"
 
     # Ports for the server
-    port_tcp = 4445
-    port_udp = 4446
+    port_tcp = 4454
+    port_udp = 4455
 
     # user -> lobby dictionary
     _user: dict = {}
@@ -119,6 +119,7 @@ class UdpServer(Thread):
         self.socket_.sendto(send_data, user)
 
     def send(self, send_data):
+        print(send_data)
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(self._send_, [(send_data, user)
                                        for user in self.server.users])

@@ -46,12 +46,13 @@ class _Connection:
 
 class UdpSendThread(Thread):
 
-    def __init__(self, pdf_widget: PdfDrawWidget, con: _Connection, user_id: int):
-        super().__init__(self)
+    def __init__(self, pdf_widget: PdfDrawWidget, con: _Connection, user_id: int, username: str):
+        Thread.__init__(self)
         self.pdf_widget = pdf_widget
         self.waiting = threading.Condition()
         self.con = con
         self.user_id = user_id
+        self.username = username
         pdf_widget.mouse_move_notifier_send = self.notify_this
 
     def run(self) -> None:
@@ -59,8 +60,7 @@ class UdpSendThread(Thread):
         while True:
             if self.con.socket is not None:
                 self.waiting.wait()
-                status = ClientStatus(
-                    self.pdf_widget.relativeMousePos, self.user_id)
+                status = ClientStatus(self.pdf_widget.relativeMousePos, self.user_id, self.username)
                 self.con.socket.sendto(pickle.dumps(
                     status), (self.con.hostname, self.con.port))
                 time.sleep(0.02)
@@ -78,7 +78,7 @@ class UdpReceiveThread(Thread):
     complete_dict: Dict = None
 
     def __init__(self, pdf_widget: PdfDrawWidget, con: _Connection, user_id: int):
-        super().__init__(self)
+        Thread.__init__(self)
         self.pdf_widget = pdf_widget
         self.waiting = threading.Condition()
         self.con = con
@@ -110,9 +110,10 @@ class UdpReceiveThread(Thread):
                             break
                     if changed:
                         self.pdf_widget.external_client_dict = self.complete_dict.copy()
+                        self.pdf_widget.multi_user_mode = True
                         self.pdf_widget.update()
                 else:
-                    print("Could not parse server data(Invalid type)")
+                    print("Could not parse server data (Invalid type) actual type is:", type(obj))
                     break
             else:
                 break
@@ -163,12 +164,11 @@ class ConnectionHandler:
                 if type(obj) is LobbyConnect:
                     self.user_id = obj.user_id
                     self.connection.remove_socket()
-                    self.pdf_widget.multi_user_mode = True
-                    self.connection.create_udp_socket(hostname, port)
+                    self.connection.create_udp_socket(hostname, port+1)
                     self.udp_thread_recv = UdpReceiveThread(
                         self.pdf_widget, self.connection, self.user_id)
                     self.udp_thread_send = UdpSendThread(
-                        self.pdf_widget, self.connection, self.user_id)
+                        self.pdf_widget, self.connection, self.user_id, username)
 
                     self.udp_thread_send.start()
                     self.udp_thread_recv.start()
@@ -209,11 +209,11 @@ class ConnectionHandler:
                     self.pdf_widget.pdfVis = fitz.open("pdf", obj.pdf)
                     self.pdf_widget.multi_user_mode = True
                     self.pdf_widget.update()
-                    self.connection.create_udp_socket(hostname, port)
+                    self.connection.create_udp_socket(hostname, port+1)
                     self.udp_thread_recv = UdpReceiveThread(
                         self.pdf_widget, self.connection, self.user_id)
                     self.udp_thread_send = UdpSendThread(
-                        self.pdf_widget, self.connection, self.user_id)
+                        self.pdf_widget, self.connection, self.user_id, username)
 
                     self.udp_thread_send.start()
                     self.udp_thread_recv.start()

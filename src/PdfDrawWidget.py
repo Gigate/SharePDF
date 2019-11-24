@@ -1,9 +1,13 @@
+import random
 from typing import List, Tuple, Callable, Any
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen, QPolygon, \
+    QBrush
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
+
+from src.MessageTyp import ClientStatus
 
 
 class PdfDrawWidget(QWidget):
@@ -34,8 +38,8 @@ class PdfDrawWidget(QWidget):
     mouse_move_notifier_send: Callable[[], Any] = None
 
     # Multi user
-    external_client_dict = None
-    user_color_dict = dict()
+    external_client_dict: dict = None
+    user_color_dict: dict = dict()
     multi_user_mode = False
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
@@ -61,31 +65,52 @@ class PdfDrawWidget(QWidget):
            x is 0 in the center of the pdf and increases for the right side
            y is 0 at the pdf top and ignores pageseperations"""
         if self.__last_mousemove_event is not None:
-            pageseperation = 0
-            iterator = iter(self.__pageoffsets)
-            next(iterator)
-            for height in iterator:
-                if height - self.verticalScrollbar.value() < self.__last_mousemove_event.y():
-                    pageseperation += self.PAGESEPERATIONHEIGTH
-                else:
-                    break
-            yPos = (self.__last_mousemove_event.y() - pageseperation + self.verticalScrollbar.value()) / self.zoom
-            xPos = (self.__last_mousemove_event.x() - self.width() / 2 + self.verticalScrollbar.value()) / self.zoom
-            return (xPos, yPos)
+            yPos = (self.__last_mousemove_event.y() + self.verticalScrollbar.value()) / self.zoom
+            xPos = (self.__last_mousemove_event.x() - self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom
+            return xPos, yPos
+        else:
+            return 0, 0
 
     def paintEvent(self, event: QPaintEvent):
         """All Drawing Actions are activated here"""
+        print(self.multi_user_mode)
+        if self.multi_user_mode:
+            self.__draw_coursers()
         self.__drawPDF(event)
 
 
     def __draw_coursers(self):
         """Draws all Cursers of other users"""
-        pass
+        for key, val in self.external_client_dict.items():
+            if key not in self.user_color_dict:
+                self.user_color_dict[key] = QColor("#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)]))
 
-    def __draw_courser(self, color: QColor):
+            x_global, y_global = val.mouse_pos
+            x_global = x_global * self.zoom + self.width()/2 - self.horizontalScrollbar.value()
+            y_global = y_global * self.zoom - self.verticalScrollbar.value()
+
+            self.__draw_courser(self.user_color_dict[key], (x_global, y_global), val.user_name)
+
+
+    def __draw_courser(self, color: QColor, point: Tuple[int, int], username: str):
         """Draws a single Cursor in a specified color"""
         self.painter.begin(self)
-        self.painter.setPen(QPen())
+        pen = QPen()
+        pen.setWidthF(1.7)
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        self.painter.setPen(pen)
+        self.painter.setBrush(QBrush(color, Qt.SolidPattern))
+        points = QPolygon([
+            QPoint(0, 0),
+            QPoint(-10, 20),
+            QPoint(0, 14),
+            QPoint(10, 20)])
+
+        points.translate(point[0], point[1])
+
+        self.painter.drawPolygon(points)
+        self.painter.end()
 
     def __drawPDF(self, event: QPaintEvent):
         """Draws the Pdf centered onto the self Object as long as the self.pdfVis variable isn't None.
