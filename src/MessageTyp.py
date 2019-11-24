@@ -19,18 +19,9 @@ class ClientStatus:
     marker_objects = []
     test = None
 
-    def __init__(self, mouse_pos: Tuple[float, float], user_id: int, marker_objects=[]):
+    def __init__(self, mouse_pos: Tuple[float, float], user_id: int, user_name: str, marker_objects=[]):
         self.marker_objects = marker_objects
         self.mouse_pos = mouse_pos
         self.user_id = user_id
-
-
-class ServerStatus:
-    code: int
-    message: str
-    changed_users: dict = {}
-    connect_events = []
-
-    def __init__(self, code=0, message=None):
-        self.code = code
-        self.message = message
+        self.user_name = user_name
+        
