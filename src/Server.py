@@ -217,7 +217,7 @@ class Lobby(Thread):
                     # if user-status has not changed add key to dictionary with None as value cause a missing user means that the user disconnected
                     stati[user] = None
 
-        self.server.udp_server.send(pickle.dumps(stati))
+            self.server.udp_server.send(pickle.dumps(stati))
 
 
 if __name__ == "__main__":
