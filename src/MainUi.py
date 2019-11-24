@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeyEvent, QIntValidator
 from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QWidget, QToolBar, QAction, qApp, \
-    QFileDialog, QLineEdit, QSizePolicy
+    QFileDialog, QLineEdit, QSizePolicy, QLabel
 
 from CentraWidget import CentralWidget
 from ConnectionHandler import ConnectionHandler
@@ -58,6 +58,9 @@ class MainUI(QMainWindow):
         openAct.setShortcut('Ctrl+O')
         openAct.triggered.connect(self.getPath)
 
+        page_number = QLabel(self)
+        page_number.setText()
+
         self.intvalidator.setRange(0, 0)
         self.pageNum = QLineEdit(self.toolbar)
         self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -67,6 +70,8 @@ class MainUI(QMainWindow):
         self.toolbar.addAction(exitAct)
         self.toolbar.addAction(openAct)
         self.toolbar.addWidget(self.pageNum)
+
+        # todo change page, show page number, join lobby, create lobby, show one mouse pointer, show names
 
     def keyPressEvent(self, event: QKeyEvent):
         """Connect all KeyPressEvents to the self.pdfWidget"""

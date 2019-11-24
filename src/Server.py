@@ -12,8 +12,10 @@ class Server:
 
     def __init__(self):
         self.message_handler = MessageHandler(self)
-        self.udp_server = UdpServer(self.message_handler, self.host, self.port_udp, self)
-        self.tcp_server = TcpServer(self.message_handler, self.host, self.port_tcp)
+        self.udp_server = UdpServer(
+            self.message_handler, self.host, self.port_udp, self)
+        self.tcp_server = TcpServer(
+            self.message_handler, self.host, self.port_tcp)
         self.udp_server.start()
         self.tcp_server.start()
 
