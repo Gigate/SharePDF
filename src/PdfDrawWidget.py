@@ -3,7 +3,7 @@ from typing import List, Tuple, Callable, Any
 
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen, QPolygon, \
-    QBrush, QPalette
+    QBrush, QPalette, QFont
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
 
@@ -25,7 +25,7 @@ class PdfDrawWidget(QWidget):
     __pdf_is_rendered = False
     __viewchanged = True
     __zoomed = True
-    __pdfImages: List[Tuple[int, QImage]] = []  # List of Tuples where first index is the hightoffset
+    __pdfImages: List[Tuple[int, int, QImage]] = []  # List of Tuples where first index is the hightoffset
     __pageoffsets: List[int] = []
     __updatePagenum = True
 
@@ -44,6 +44,7 @@ class PdfDrawWidget(QWidget):
     external_client_dict: dict = None
     user_color_dict: dict = dict()
     multi_user_mode = False
+    render_username = True
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -112,6 +113,9 @@ class PdfDrawWidget(QWidget):
         points.translate(point[0], point[1])
 
         self.painter.drawPolygon(points)
+        if self.render_username:
+            self.painter.setFont(QFont('Decorative', 10))
+            self.painter.drawText(15 + point[0], 25 + point[1], username)
         self.painter.end()
 
     def __drawPDF(self, event: QPaintEvent):
@@ -162,25 +166,15 @@ class PdfDrawWidget(QWidget):
             for falseI, page in enumerate(self.pdfVis.pages(lowestVisablePage, highestVisablePage)):
                 i = falseI + lowestVisablePage
 
-                #Calculate Rectangle Coordinates for clipping
-                clipx0 = (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
-                    if (page.rect.width * self.zoom / 2 - self.width() / 2 + self.horizontalScrollbar.value()) > 0 else 0
-                clipy0 = (self.verticalScrollbar.value() - self.__pageoffsets[i]) / self.zoom \
-                    if self.verticalScrollbar.value() >= self.__pageoffsets[i] else 0
-                clipx1 = (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom \
-                    if (page.rect.width * self.zoom / 2 + self.width() / 2 + self.horizontalScrollbar.value()) / self.zoom < page.rect.width else page.rect.width
-                clipy1 = (self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i]) / self.zoom \
-                    if self.verticalScrollbar.value() + self.height() - self.__pageoffsets[i] <= page.rect.height*self.zoom else page.rect.height
-
-                # print(self.verticalScrollbar.value())
-                pix: Pixmap = page.getPixmap(mat)#, clip=Rect(clipx0, clipy0, clipx1, clipy1))
+                # Todo Clipping for better Performance
+                pix: Pixmap = page.getPixmap(mat)
                 fmt = QImage.Format_RGBA8888 if pix.alpha else QImage.Format_RGB888
                 self.__pdfImages.append(
-                    (self.__pageoffsets[i], QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)))
+                    (self.__pageoffsets[i], self.__pageoffsets[i+1], QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)))
 
-            if self.__pdfImages[0][1].width() > self.width():
-                self.horizontalScrollbar.setRange(self.width() - self.__pdfImages[0][1].width(),
-                                                  self.__pdfImages[0][1].width() - self.width())
+            if self.__pdfImages[0][2].width() > self.width():
+                self.horizontalScrollbar.setRange(self.width() - self.__pdfImages[0][2].width(),
+                                                  self.__pdfImages[0][2].width() - self.width())
                 self.horizontalScrollbar.setVisible(True)
             else:
                 self.horizontalScrollbar.setVisible(False)
@@ -188,15 +182,18 @@ class PdfDrawWidget(QWidget):
 
                 self.__viewchanged = False
 
+            seperationlines: List[Tuple[int, int, int, int]] = []
             self.painter.begin(self)
-            for y, img in self.__pdfImages:
+            for y, y1, img in self.__pdfImages:
                 self.painter.drawImage(self.painter.viewport().width() / 2 - img.width() / 2
                                        - self.horizontalScrollbar.value(),
                                        y - self.verticalScrollbar.value(), img)
-                self.painter.drawLine(self.painter.viewport().width() / 2 - img.width() / 2
-                                       - self.horizontalScrollbar.value(),y,
+                seperationlines.append((self.painter.viewport().width() / 2 - img.width() / 2
+                                       - self.horizontalScrollbar.value(), y1 - self.verticalScrollbar.value(),
                                       self.painter.viewport().width() / 2 + img.width() / 2
-                                      - self.horizontalScrollbar.value(), y)
+                                      - self.horizontalScrollbar.value(), y1 - self.verticalScrollbar.value()))
+            for x0, y0, x1, y1 in seperationlines:
+                self.painter.drawLine(x0, y0, x1, y1)
             self.painter.end()
             self.__pdf_is_rendered = True
         else:
