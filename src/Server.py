@@ -2,6 +2,7 @@ import socket
 import time
 import array
 from threading import Thread
+import concurrent.futures
 import sys
 from MessageTyp import LobbyConnect, ClientStatus
 import pickle
@@ -15,14 +16,14 @@ class Server:
     # Dictionary: key=lobby-name, value pdf
     pdfs: dict = {}
 
-    # Dictionary: key=ip of user, value=tupel(user-name,lobby)
-    clients: dict = {}
-
-    # Dictionary: key=user-name, value=Status_Client
+    # Dictionary: key=user-id, value=Status_Client
     users: dict = {}
 
     # Dictionary: key=user-name, value=Boolean(changed in the last 2ms)
     changed: dict = {}
+
+    # Dictionary: key=user-name, value=adress of the user
+    addresses: dict = {}
 
     # Highest user id
     high_id = 0
@@ -38,15 +39,24 @@ class Server:
     lobbies: dict = {}
 
     def serv(self):
+
         message_handler = MessageHandler(self)
-        # udp_server = UdpServer(message_handler, self.host, self.port_udp)
+        udp_server = UdpServer(message_handler, self.host, self.port_udp, self)
         tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
-        # udp_server.start()
+        udp_server.start()
         tcp_server.start()
 
         while True:
-            time.sleep(1)
-            print(self.lobbies)
+            time.sleep(0.03)
+
+            stati = {}
+            for user in self.users:
+                if self.changed[user]:
+                    stati[user] = self.users[user]
+                else:
+                    stati[user] = None
+
+        udp_server.send(pickle.dumps(stati))
 
 
 class TcpServer(Thread):
@@ -65,67 +75,79 @@ class TcpServer(Thread):
 
         socket_.bind((self.host, self.port))
 
+        threads = []
+
         while True:
 
-            socket_.listen(1)
+            socket_.listen(4)
 
             conn, addr = socket_.accept()
+            connection_thread = TcpConnection(conn, addr, self)
+            connection_thread.start()
+            threads.append(connection_thread)
 
-            data = conn.recv(1024)
-            newdata = conn.recv(1024)
+        for t in threads:
+            t.join()
 
-            while len(newdata) > 0:
-                data.append(newdata)
-                newdata = conn.recv(1024)
 
-            obj = pickle.loads(data)
+class TcpConnection(Thread):
 
-            data = self.message_handler.handle_message(obj)
+    def __init__(self, conn, addr, server):
+        Thread.__init__(self)
+        self.ip, self.port = addr
+        self.conn = conn
+        self.server = server
 
-            if type(data) is LobbyConnect:
-                socket_.sendall(pickle.dumps(data))
-            else:
-                socket_.sendall(data)
-
-            conn.close()
+    def run(self):
+        data = self.conn.recv(1024)
+        newdata = self.conn.recv(1024)
+        while len(newdata) > 0:
+            data.append(newdata)
+            newdata = self.conn.recv(1024)
+        obj = pickle.loads(data)
+        data = self.server.message_handler.handle_message(obj)
+        if type(data) is LobbyConnect:
+            self.server.socket_.sendall(pickle.dumps(data))
+        else:
+            self.server.socket_.sendall(data)
+        self.conn.close()
 
 
 class UdpServer(Thread):
 
     host = ''
     port = -1
+    socket_: socket.socket
 
-    def __init__(self, message_handler, host, port):
+    def __init__(self, message_handler, host, port, server: Server):
         Thread.__init__(self)
         self.host = host
         self.port = port
         self.message_handler = message_handler
+        self.server = server
+
+        self.socket_ = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket_.bind((self.host, self.port))
+
+    def _send_(self, tupel):
+        send_data, user = tupel
+        self.socket_.sendto(send_data, user)
+
+    def send(self, send_data):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            executor.map(self._send_, [(send_data, user)
+                                  for user in self.server.users])
 
     def run(self):
-        try:
-            socket_ = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        except socket_.error as err_msg:
-            print('Unable to instantiate socket_. Error message : ' + err_msg)
-            sys.exit()
-
-        socket_.bind((self.host, self.port))
-        socket_.listen(1)
-
-        conn, addr = socket_.accept()
-
         while True:
-            data = conn.recvfrom(1024).decode()
-            if not data:
-                break
-            print("from connected  user: " + str(data))
+            data, addr = self.socket_.recvfrom(2048).decode()
 
-            data = str(data).upper()
-            print("Received from User: " + str(data))
+            obj = pickle.loads(data)
 
-            data = input(" ? ")
-            conn.send(data.encode())
+            if type(obj) is ClientStatus:
+                self.server.addresses[obj.user_id] = addr
 
-        conn.close()
+            data = self.message_handler.handle_message(obj)
 
 
 class MessageHandler:
@@ -151,8 +173,8 @@ class MessageHandler:
             return 1
 
     def handle_client_status(self, client_status):
-        # self.server.users[client_status]
-        pass
+        self.server.users[client_status.user_id] = client_status
+        self.server.changed[client_status.user_id] = True
 
 
 if __name__ == "__main__":
