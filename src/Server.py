@@ -11,22 +11,11 @@ import pickle
 class Server:
 
     def __init__(self):
-        host = "blah"
-
-    # Dictionary: key=lobby-name, value pdf
-    pdfs: dict = {}
-
-    # Dictionary: key=user-id, value=Status_Client
-    users: dict = {}
-
-    # Dictionary: key=user-name, value=Boolean(changed in the last 2ms)
-    changed: dict = {}
-
-    # Dictionary: key=user-name, value=adress of the user
-    addresses: dict = {}
-
-    # Highest user id
-    high_id = 0
+        message_handler = MessageHandler(self)
+        udp_server = UdpServer(message_handler, self.host, self.port_udp, self)
+        tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
+        udp_server.start()
+        tcp_server.start()
 
     # Host for the server
     host = "localhost"
@@ -35,28 +24,20 @@ class Server:
     port_tcp = 4445
     port_udp = 4446
 
+    # user -> lobby dictionary
+    _user: dict = {}
+
     # Lobby list
-    lobbies: dict = {}
+    _lobbies: dict = {}
 
-    def serv(self):
+    def add_lobby(self, pdf, name, first_user, password):
+        lobby = Lobby(pdf, self, name, password)
+        lobby.users[first_user] = None
+        self._lobbies[name] = lobby
+        self._user[first_user] = lobby
+        lobby.start()
+        return lobby
 
-        message_handler = MessageHandler(self)
-        udp_server = UdpServer(message_handler, self.host, self.port_udp, self)
-        tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
-        udp_server.start()
-        tcp_server.start()
-
-        while True:
-            time.sleep(0.03)
-
-            stati = {}
-            for user in self.users:
-                if self.changed[user]:
-                    stati[user] = self.users[user]
-                else:
-                    stati[user] = None
-
-        udp_server.send(pickle.dumps(stati))
 
 
 class TcpServer(Thread):
@@ -83,6 +64,7 @@ class TcpServer(Thread):
             self.socket_.listen(4)
 
             conn, addr = self.socket_.accept()
+            # let a tcp-connection thread handle the received data
             connection_thread = TcpConnection(conn, addr, self)
             connection_thread.start()
             threads.append(connection_thread)
@@ -102,6 +84,7 @@ class TcpConnection(Thread):
     def run(self):
         data = self.conn.recv(1024)
         newdata = self.conn.recv(1024)
+        # append received information to data if received data is larger than 1024
         while len(newdata) > 0:
             data.append(newdata)
             newdata = self.conn.recv(1024)
@@ -137,7 +120,7 @@ class UdpServer(Thread):
     def send(self, send_data):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(self._send_, [(send_data, user)
-                                  for user in self.server.users])
+                                       for user in self.server.users])
 
     def run(self):
         while True:
@@ -164,20 +147,73 @@ class MessageHandler:
         elif type(object_) is ClientStatus:
             return self.handle_client_status(object_)
 
-    def handle_lobby(self, lobby: LobbyConnect):
-        if not lobby.lobby_name in self.server.lobbies:
-            lobby.user_id = self.server.high_id
+    def handle_lobby(self, lobby_connect: LobbyConnect):
+        if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:  # if the received lobby is a new lobby
+            lobby_connect.user_id = self.server.high_id
             self.server.high_id += 1
-            self.server.lobbies[lobby.lobby_name] = lobby
-            return lobby
+            lobby_connect.pdf = None
+            self.server.lobbies[lobby_connect.lobby_name] = self.server.add_lobby(lobby_connect.pdf, lobby_connect.name, lobby_connect.user_id, lobby_connect.password)
+            return lobby_connect
+        elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password is self.server._lobbies[lobby_connect.lobby_name].password:
+            lobby_connect.user_id = self.server.high_id
+            self.server.high_id += 1
+            lobby_connect.pdf = None
+            self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
+            self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
         else:
-            return 1
+            return -1
 
     def handle_client_status(self, client_status):
-        self.server.users[client_status.user_id] = client_status
-        self.server.changed[client_status.user_id] = True
+        lobby = self.server._user[client_status.user_id]
+        lobby.users[client_status.user_id] = client_status
+        lobby.changed[client_status.user_id] = True
+
+
+class Lobby(Thread):
+    def __init__(self, pdf, server, name, password):
+        self.pdf = pdf
+        self.server = server
+        self.name = name
+        self.password = password
+
+    # Name
+    name: str
+
+    # Password
+    pasword: str
+
+    # PDF
+    pdf: bytes
+
+    # Dictionary: key=lobby-name, value pdf
+    pdfs: dict = {}
+
+    # Dictionary: key=user-id, value=Status_Client
+    users: dict = {}
+
+    # Dictionary: key=user-id, value=Boolean(changed in the last 2ms)
+    changed: dict = {}
+
+    # Dictionary: key=user-id, value=adress of the user
+    addresses: dict = {}
+
+    # Highest user id
+    high_id = 0
+
+    def run(self):
+        while True:
+            time.sleep(0.03)  # Send server status to users every 1/30 seconds
+            
+            stati = {}
+            for user in self.users:
+                if self.changed[user]:
+                    stati[user] = self.users[user]
+                else:
+                    # if user-status has not changed add key to dictionary with None as value cause a missing user means that the user disconnected
+                    stati[user] = None
+
+        self.server.udp_server.send(pickle.dumps(stati))
 
 
 if __name__ == "__main__":
-    server = Server()
-    server.serv()
+    Server()

@@ -4,10 +4,10 @@ from fitz import Document
 
 
 class LobbyConnect:
-#    pdf: Document = None
+    pdf: bytes = None
     user_id = None
 
-    def __init__(self, lobby_name: str, password: str, username: str, pdf: Document = None):
+    def __init__(self, lobby_name: str, password: str, username: str, pdf: bytes = None):
         self.password: str = password
         self.lobby_name: str = lobby_name
         self.username = username
@@ -24,4 +24,4 @@ class ClientStatus:
         self.mouse_pos = mouse_pos
         self.user_id = user_id
         self.user_name = user_name
-        
+
