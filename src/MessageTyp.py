@@ -11,7 +11,7 @@ class LobbyConnect:
         self.password: str = password
         self.lobby_name: str = lobby_name
         self.username = username
- #       self.pdf = pdf
+        self.pdf = pdf
 
 
 class ClientStatus:

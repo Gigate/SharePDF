@@ -17,7 +17,7 @@ class _Connection:
     hostname = None
     port = None
 
-    def create_tcp_socket(self, hostname, port, timeout=3):
+    def create_tcp_socket(self, hostname, port, timeout=100):
         try:
             self.socket = socket(AF_INET, SOCK_STREAM)
             self.socket.settimeout(timeout)
@@ -59,8 +59,10 @@ class UdpSendThread(Thread):
         while True:
             if self.con.socket is not None:
                 self.waiting.wait()
-                status = ClientStatus(self.pdf_widget.relativeMousePos, self.user_id)
-                self.con.socket.sendto(pickle.dumps(status), (self.con.hostname, self.con.port))
+                status = ClientStatus(
+                    self.pdf_widget.relativeMousePos, self.user_id)
+                self.con.socket.sendto(pickle.dumps(
+                    status), (self.con.hostname, self.con.port))
                 time.sleep(0.02)
             else:
                 break
@@ -102,7 +104,8 @@ class UdpReceiveThread(Thread):
                         elif val is None:
                             pass
                         else:
-                            print("Could not parse server data (Invalid ClientStatus)")
+                            print(
+                                "Could not parse server data (Invalid ClientStatus)")
                             loop = False
                             break
                     if changed:
@@ -135,7 +138,8 @@ class ConnectionHandler:
                 self.connection.create_tcp_socket(hostname, port)
                 with open(pdf, 'rb') as fd:
                     pdf_bytes = fd.read()
-                lobby_connect = LobbyConnect(lobby_name, password, username, pdf_bytes)
+                lobby_connect = LobbyConnect(
+                    lobby_name, password, username, pdf_bytes)
                 self.connection.socket.sendall(pickle.dumps(lobby_connect, 4))
 
                 data = self.connection.socket.recv(1024)
@@ -151,17 +155,20 @@ class ConnectionHandler:
                     self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
+                print(obj)
 
-                if obj is int:
+                if type(obj) is int:
                     self.connection.remove_socket()
                     return False
-                if obj is LobbyConnect:
+                if type(obj) is LobbyConnect:
                     self.user_id = obj.user_id
                     self.connection.remove_socket()
                     self.pdf_widget.multi_user_mode = True
                     self.connection.create_udp_socket(hostname, port)
-                    self.udp_thread_recv = UdpReceiveThread(self.pdf_widget, self.connection, self.user_id)
-                    self.udp_thread_send = UdpSendThread(self.pdf_widget, self.connection, self.user_id)
+                    self.udp_thread_recv = UdpReceiveThread(
+                        self.pdf_widget, self.connection, self.user_id)
+                    self.udp_thread_send = UdpSendThread(
+                        self.pdf_widget, self.connection, self.user_id)
 
                     self.udp_thread_send.start()
                     self.udp_thread_recv.start()
@@ -203,8 +210,10 @@ class ConnectionHandler:
                     self.pdf_widget.multi_user_mode = True
                     self.pdf_widget.update()
                     self.connection.create_udp_socket(hostname, port)
-                    self.udp_thread_recv = UdpReceiveThread(self.pdf_widget, self.connection, self.user_id)
-                    self.udp_thread_send = UdpSendThread(self.pdf_widget, self.connection, self.user_id)
+                    self.udp_thread_recv = UdpReceiveThread(
+                        self.pdf_widget, self.connection, self.user_id)
+                    self.udp_thread_send = UdpSendThread(
+                        self.pdf_widget, self.connection, self.user_id)
 
                     self.udp_thread_send.start()
                     self.udp_thread_recv.start()
@@ -218,4 +227,6 @@ class ConnectionHandler:
 
 if __name__ == "__main__":
     c = ConnectionHandler()
-    c.join_lobby("localhost", 4445, "blah", "v", "ritendiu")
+    # c.join_lobby("localhost", 4445, "blah", "v", "ritendiu")
+    c.request_lobby_creation("localhost", 4445, "blah", "ti",
+                             "test", "/home/jere/Downloads/02-Intelligent-Agents.pdf")

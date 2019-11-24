@@ -33,6 +33,7 @@ class Server:
     def add_lobby(self, pdf, name, first_user, password):
         lobby = Lobby(pdf, self, name, password)
         lobby.users[first_user] = None
+        lobby.changed[first_user] = None
         self._lobbies[name] = lobby
         self._user[first_user] = lobby
         lobby.start()
@@ -83,20 +84,17 @@ class TcpConnection(Thread):
     def run(self):
         data = self.conn.recv(1024)
         old_timeout = self.conn.gettimeout()
-        self.conn.socket.settimeout(0.2)
+        self.conn.settimeout(0.2)
         try:
             new_data = self.conn.recv(1024)
             while len(new_data) > 0:
-                data.append(new_data)
+                data += new_data
                 new_data = self.conn.recv(1024)
         except socket.timeout:
             self.conn.settimeout(old_timeout)
         obj = pickle.loads(data)
         data = self.server.message_handler.handle_message(obj)
-        if type(data) is LobbyConnect:
-            self.server.socket_.sendall(pickle.dumps(data))
-        else:
-            self.server.socket_.sendall(data)
+        self.conn.sendall(pickle.dumps(data))
         self.conn.close()
 
 
@@ -153,20 +151,20 @@ class MessageHandler:
     def handle_lobby(self, lobby_connect: LobbyConnect):
         # if the received lobby is a new lobby
         if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:
-            lobby_connect.user_id = self.server.high_id
-            self.server.high_id += 1
+            lobby_connect.user_id = 0
             lobby_connect.pdf = None
-            self.server.lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
-                lobby_connect.pdf, lobby_connect.name, lobby_connect.user_id, lobby_connect.password)
+            self.server._lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
+                lobby_connect.pdf, lobby_connect.lobby_name, lobby_connect.user_id, lobby_connect.password)
             return lobby_connect
         elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password is self.server._lobbies[lobby_connect.lobby_name].password:
-            lobby_connect.user_id = self.server.high_id
-            self.server.high_id += 1
+            lobby_connect.user_id = self.server._lobbies[lobby_connect.lobby_name].high_id
+            self.server._lobbies[lobby_connect.lobby_name].high_id += 1
             lobby_connect.pdf = self.server._lobbies[lobby_connect.lobby_name].pdf
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
+            self.server._lobbies[lobby_connect.lobby_name].changed[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
         else:
-            return -1
+            return 1
 
     def handle_client_status(self, client_status):
         lobby = self.server._user[client_status.user_id]
@@ -176,6 +174,7 @@ class MessageHandler:
 
 class Lobby(Thread):
     def __init__(self, pdf, server, name, password):
+        Thread.__init__(self)
         self.pdf = pdf
         self.server = server
         self.name = name
@@ -203,7 +202,7 @@ class Lobby(Thread):
     addresses: dict = {}
 
     # Highest user id
-    high_id = 0
+    high_id = 1  # Starts at 1 because lobby creator automatically gets assigned 0
 
     def run(self):
         while True:
