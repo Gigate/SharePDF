@@ -1,7 +1,7 @@
 from typing import List, Tuple, Callable, Any
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent
+from PyQt5.QtGui import QPainter, QImage, QPaintEvent, QWheelEvent, QKeyEvent, QMouseEvent, QColor, QPen
 from PyQt5.QtWidgets import QWidget, QScrollBar
 from fitz import Document, Pixmap, fitz, Rect
 
@@ -35,6 +35,8 @@ class PdfDrawWidget(QWidget):
 
     # Multi user
     external_client_dict = None
+    user_color_dict = dict()
+    multi_user_mode = False
 
     def __init__(self, parent: QWidget = None, painter: QPainter = QPainter()):
         super().__init__(parent)
@@ -74,6 +76,16 @@ class PdfDrawWidget(QWidget):
     def paintEvent(self, event: QPaintEvent):
         """All Drawing Actions are activated here"""
         self.__drawPDF(event)
+
+
+    def __draw_coursers(self):
+        """Draws all Cursers of other users"""
+        pass
+
+    def __draw_courser(self, color: QColor):
+        """Draws a single Cursor in a specified color"""
+        self.painter.begin(self)
+        self.painter.setPen(QPen())
 
     def __drawPDF(self, event: QPaintEvent):
         """Draws the Pdf centered onto the self Object as long as the self.pdfVis variable isn't None.

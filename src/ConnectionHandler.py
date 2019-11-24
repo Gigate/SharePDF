@@ -3,7 +3,7 @@ import threading
 from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM, timeout
 from typing import Optional, Callable, Any, Iterable, Mapping, Dict
 from fitz import Document
-from src.MessageTyp import LobbyConnect, ClientStatus, ServerStatus
+from src.MessageTyp import LobbyConnect, ClientStatus
 from src.PdfDrawWidget import PdfDrawWidget
 from threading import Thread
 import time
@@ -106,6 +106,7 @@ class UdpReceiveThread(Thread):
                             break
                     if changed:
                         self.pdf_widget.external_client_dict = self.complete_dict.copy()
+                        self.pdf_widget.update()
                 else:
                     print("Could not parse server data(Invalid type)")
                     break
@@ -154,6 +155,7 @@ class ConnectionHandler:
                 if obj is LobbyConnect:
                     self.user_id = obj.user_id
                     self.connection.remove_socket()
+                    self.pdf_widget.multi_user_mode = True
                     self.connection.create_udp_socket(hostname, port)
                     self.udp_thread_recv = UdpReceiveThread(self.pdf_widget, self.connection, self.user_id)
                     self.udp_thread_send = UdpSendThread(self.pdf_widget, self.connection, self.user_id)
@@ -195,6 +197,7 @@ class ConnectionHandler:
                 if obj is LobbyConnect:
                     self.user_id = obj.user_id
                     self.pdf_widget.pdfVis = obj.pdf
+                    self.pdf_widget.multi_user_mode = True
                     self.pdf_widget.update()
                     self.connection.create_udp_socket(hostname, port)
                     self.udp_thread_recv = UdpReceiveThread(self.pdf_widget, self.connection, self.user_id)
