@@ -39,7 +39,6 @@ class Server:
         return lobby
 
 
-
 class TcpServer(Thread):
 
     host = ''
@@ -152,16 +151,18 @@ class MessageHandler:
             return self.handle_client_status(object_)
 
     def handle_lobby(self, lobby_connect: LobbyConnect):
-        if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:  # if the received lobby is a new lobby
+        # if the received lobby is a new lobby
+        if not lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is not None:
             lobby_connect.user_id = self.server.high_id
             self.server.high_id += 1
             lobby_connect.pdf = None
-            self.server.lobbies[lobby_connect.lobby_name] = self.server.add_lobby(lobby_connect.pdf, lobby_connect.name, lobby_connect.user_id, lobby_connect.password)
+            self.server.lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
+                lobby_connect.pdf, lobby_connect.name, lobby_connect.user_id, lobby_connect.password)
             return lobby_connect
         elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password is self.server._lobbies[lobby_connect.lobby_name].password:
             lobby_connect.user_id = self.server.high_id
             self.server.high_id += 1
-            lobby_connect.pdf = None
+            lobby_connect.pdf = self.server._lobbies[lobby_connect.lobby_name].pdf
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
         else:
@@ -207,7 +208,7 @@ class Lobby(Thread):
     def run(self):
         while True:
             time.sleep(0.03)  # Send server status to users every 1/30 seconds
-            
+
             stati = {}
             for user in self.users:
                 if self.changed[user]:
