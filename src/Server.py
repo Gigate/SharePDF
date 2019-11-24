@@ -63,6 +63,7 @@ class TcpServer(Thread):
 
     host = ''
     port = -1
+    socket_: socket
 
     def __init__(self, message_handler, host, port):
         Thread.__init__(self)
@@ -71,17 +72,17 @@ class TcpServer(Thread):
         self.message_handler = message_handler
 
     def run(self):
-        socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        socket_.bind((self.host, self.port))
+        self.socket_.bind((self.host, self.port))
 
         threads = []
 
         while True:
 
-            socket_.listen(4)
+            self.socket_.listen(4)
 
-            conn, addr = socket_.accept()
+            conn, addr = self.socket_.accept()
             connection_thread = TcpConnection(conn, addr, self)
             connection_thread.start()
             threads.append(connection_thread)
