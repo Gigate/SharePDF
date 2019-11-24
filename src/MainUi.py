@@ -76,6 +76,7 @@ class MainUI(QMainWindow):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
             self.pdfWidget.loadDocument(fname[0])
+            
 
 
 if __name__ == '__main__':

@@ -3,9 +3,10 @@ import threading
 from socket import socket, AF_INET, SOCK_STREAM, SOCK_DGRAM, timeout
 from typing import Optional, Callable, Any, Iterable, Mapping, Dict
 from fitz import Document
-from src.MessageTyp import LobbyConnect, ClientStatus
-from src.PdfDrawWidget import PdfDrawWidget
+from MessageTyp import LobbyConnect, ClientStatus
+from PdfDrawWidget import PdfDrawWidget
 from threading import Thread
+import fitz
 import time
 
 
@@ -132,7 +133,9 @@ class ConnectionHandler:
         if self.connection.socket is None:
             try:
                 self.connection.create_tcp_socket(hostname, port)
-                lobby_connect = LobbyConnect(lobby_name, password, username, pdf)
+                with open(pdf, 'rb') as fd:
+                    pdf_bytes = fd.read()
+                lobby_connect = LobbyConnect(lobby_name, password, username, pdf_bytes)
                 self.connection.socket.sendall(pickle.dumps(lobby_connect, 4))
 
                 data = self.connection.socket.recv(1024)
@@ -167,7 +170,7 @@ class ConnectionHandler:
                 raise OSError
         else:
             self.connection.remove_socket()
-            return self.request_lobby_creation(hostname, port, password, username, pdf)
+            return self.request_lobby_creation(hostname, port, lobby_name, password, username, pdf)
 
     def join_lobby(self, hostname, port, lobby_name, password, username) -> bool:
         if self.connection is None:
@@ -196,7 +199,7 @@ class ConnectionHandler:
                     return False
                 if obj is LobbyConnect:
                     self.user_id = obj.user_id
-                    self.pdf_widget.pdfVis = obj.pdf
+                    self.pdf_widget.pdfVis = fitz.open("pdf", obj.pdf)
                     self.pdf_widget.multi_user_mode = True
                     self.pdf_widget.update()
                     self.connection.create_udp_socket(hostname, port)
@@ -215,4 +218,4 @@ class ConnectionHandler:
 
 if __name__ == "__main__":
     c = ConnectionHandler()
-    c.joinLobby("localhost", 4445, "blah", "v", "ritendiu")
+    c.join_lobby("localhost", 4445, "blah", "v", "ritendiu")
