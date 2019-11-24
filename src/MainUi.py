@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout,
 from CentraWidget import CentralWidget
 from PdfDrawWidget import PdfDrawWidget
 
+from src.CreateDialog import CreateLobbyDialog, ExitLobbyDialog
+
 
 class MainUI(QMainWindow):
 
@@ -54,6 +56,14 @@ class MainUI(QMainWindow):
         openAct.setShortcut('Ctrl+O')
         openAct.triggered.connect(self.getPath)
 
+        joinAct = QAction('Join', self)
+        joinAct.setShortcut('Ctrl+J')
+        joinAct.triggered.connect(self.getJoin)
+
+        exitLobbyAct = QAction('ExitJoin', self)
+        exitLobbyAct.setShortcut('Ctrl+E')
+        exitLobbyAct.triggered.connect(self.getLobbyExit)
+
         self.intvalidator.setRange(0, 0)
         self.pageNum = QLineEdit(self.toolbar)
         self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -62,6 +72,8 @@ class MainUI(QMainWindow):
 
         self.toolbar.addAction(exitAct)
         self.toolbar.addAction(openAct)
+        self.toolbar.addAction(joinAct)
+        self.toolbar.addAction(exitLobbyAct)
         self.toolbar.addWidget(self.pageNum)
 
     def keyPressEvent(self, event: QKeyEvent):
@@ -76,6 +88,15 @@ class MainUI(QMainWindow):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
             self.pdfWidget.loadDocument(fname[0])
+
+    def getJoin(self):
+        dialog = CreateLobbyDialog(self)
+        dialog.show()
+
+
+    def getLobbyExit(self):
+        dialog = ExitLobbyDialog(self)
+        dialog.show()
 
 
 if __name__ == '__main__':

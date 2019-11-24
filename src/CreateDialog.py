@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import QDialog, QApplication, QDialogButtonBox, QVBoxLayout
 
 
 class CreateLobbyDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.join_object = ()
         self.title = 'JoinLobby'
         self.left = 100
         self.top = 100
@@ -66,16 +67,19 @@ class CreateLobbyDialog(QDialog):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
     def on_click_ok(self):
-        if True:
-            print('ConnectMessage: ' + self.textbox_lobby.text() + self.textbox_user.text() + self.textbox_password.text())
+        if self.textbox_lobby.text() != '' or self.textbox_user.text() != '' or self.textbox_password.text() != '':
+            print(1)
 
     def on_click_pdf_chooser(self):
         if self.create.isChecked():
             print("Open Pdf-Chooser")
 
+
+
+
 class ExitLobbyDialog(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
         self.title = 'ExitLobby'
         self.left = 100
         self.top = 100
@@ -91,12 +95,16 @@ class ExitLobbyDialog(QDialog):
         # Button
         self.button_ok = QPushButton('OK', self)
         self.button_ok.move(round(self.width * 0.15), (self.height - 40))
+        self.button_cancel.clicked.connect(self.close)#ToDo: and pdfviewer
         self.button_cancel = QPushButton('Cancel', self)
         self.button_cancel.move(round(self.width * 0.55), (self.height - 40))
+        self.button_cancel.clicked.connect(self.close)
 
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+
+
 
 
 if __name__ == '__main__':
