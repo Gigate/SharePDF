@@ -11,11 +11,11 @@ import pickle
 class Server:
 
     def __init__(self):
-        message_handler = MessageHandler(self)
-        udp_server = UdpServer(message_handler, self.host, self.port_udp, self)
-        tcp_server = TcpServer(message_handler, self.host, self.port_tcp)
-        udp_server.start()
-        tcp_server.start()
+        self.message_handler = MessageHandler(self)
+        self.udp_server = UdpServer(self.message_handler, self.host, self.port_udp, self)
+        self.tcp_server = TcpServer(self.message_handler, self.host, self.port_tcp)
+        self.udp_server.start()
+        self.tcp_server.start()
 
     # Host for the server
     host = "localhost"
@@ -29,6 +29,9 @@ class Server:
 
     # Lobby list
     _lobbies: dict = {}
+
+    # Dictionary: key=user-id, value=adress of the user
+    addresses: dict = {}
 
     def add_lobby(self, pdf, name, first_user, password):
         lobby = Lobby(pdf, self, name, password)
@@ -119,14 +122,14 @@ class UdpServer(Thread):
         self.socket_.sendto(send_data, user)
 
     def send(self, send_data):
-        print(send_data)
+        print(self.server.addresses)
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(self._send_, [(send_data, user)
-                                       for user in self.server.users])
+                                       for user in self.server.addresses])
 
     def run(self):
         while True:
-            data, addr = self.socket_.recvfrom(2048).decode()
+            data, addr = self.socket_.recvfrom(2048)
 
             obj = pickle.loads(data)
 
@@ -198,9 +201,6 @@ class Lobby(Thread):
 
     # Dictionary: key=user-id, value=Boolean(changed in the last 2ms)
     changed: dict = {}
-
-    # Dictionary: key=user-id, value=adress of the user
-    addresses: dict = {}
 
     # Highest user id
     high_id = 1  # Starts at 1 because lobby creator automatically gets assigned 0

@@ -37,7 +37,7 @@ class _Connection:
             self.hostname = hostname
             self.port = port
             self.socket = socket(AF_INET, SOCK_DGRAM)
-            self.socket.bind((hostname, port))
+            self.socket.connect((hostname, port))
             self.is_tcp_socket = False
         except OSError:
             self.remove_socket()
@@ -61,8 +61,7 @@ class UdpSendThread(Thread):
             if self.con.socket is not None:
                 self.waiting.wait()
                 status = ClientStatus(self.pdf_widget.relativeMousePos, self.user_id, self.username)
-                self.con.socket.sendto(pickle.dumps(
-                    status), (self.con.hostname, self.con.port))
+                self.con.socket.sendall(pickle.dumps(status))
                 time.sleep(0.02)
             else:
                 break
@@ -93,6 +92,7 @@ class UdpReceiveThread(Thread):
                     changed = False
                     if self.complete_dict is None:
                         self.complete_dict = obj
+                        changed = True
                     for key in self.complete_dict:
                         if key not in obj:
                             self.complete_dict.pop(key)
@@ -108,6 +108,7 @@ class UdpReceiveThread(Thread):
                                 "Could not parse server data (Invalid ClientStatus)")
                             loop = False
                             break
+                    print("changed is:", changed)
                     if changed:
                         self.pdf_widget.external_client_dict = self.complete_dict.copy()
                         self.pdf_widget.multi_user_mode = True
@@ -178,6 +179,8 @@ class ConnectionHandler:
         else:
             self.connection.remove_socket()
             return self.request_lobby_creation(hostname, port, lobby_name, password, username, pdf)
+        return True
+
 
     def join_lobby(self, hostname, port, lobby_name, password, username) -> bool:
         if self.connection is None:
