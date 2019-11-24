@@ -88,7 +88,7 @@ class UdpReceiveThread(Thread):
         while loop:
             if self.con.socket is not None:
                 obj = pickle.loads(self.con.socket.recv(2048))
-                if type(obj) is Dict[int, Any]:
+                if type(obj) is dict:
                     changed = False
                     if self.complete_dict is None:
                         self.complete_dict = obj
@@ -108,7 +108,6 @@ class UdpReceiveThread(Thread):
                                 "Could not parse server data (Invalid ClientStatus)")
                             loop = False
                             break
-                    print("changed is:", changed)
                     if changed:
                         self.pdf_widget.external_client_dict = self.complete_dict.copy()
                         self.pdf_widget.multi_user_mode = True

@@ -73,10 +73,9 @@ class PdfDrawWidget(QWidget):
 
     def paintEvent(self, event: QPaintEvent):
         """All Drawing Actions are activated here"""
-        print(self.multi_user_mode)
+        self.__drawPDF(event)
         if self.multi_user_mode:
             self.__draw_coursers()
-        self.__drawPDF(event)
 
 
     def __draw_coursers(self):

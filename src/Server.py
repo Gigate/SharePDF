@@ -122,10 +122,9 @@ class UdpServer(Thread):
         self.socket_.sendto(send_data, user)
 
     def send(self, send_data):
-        print(self.server.addresses)
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(self._send_, [(send_data, user)
-                                       for user in self.server.addresses])
+                                       for user in self.server.addresses.values()])
 
     def run(self):
         while True:
