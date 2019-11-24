@@ -60,7 +60,8 @@ class UdpSendThread(Thread):
         while True:
             if self.con.socket is not None:
                 self.waiting.wait()
-                status = ClientStatus(self.pdf_widget.relativeMousePos, self.user_id, self.username)
+                status = ClientStatus(
+                    self.pdf_widget.relativeMousePos, self.user_id, self.username)
                 self.con.socket.sendall(pickle.dumps(status))
                 time.sleep(0.02)
             else:
@@ -113,7 +114,8 @@ class UdpReceiveThread(Thread):
                         self.pdf_widget.multi_user_mode = True
                         self.pdf_widget.update()
                 else:
-                    print("Could not parse server data (Invalid type) actual type is:", type(obj))
+                    print(
+                        "Could not parse server data (Invalid type) actual type is:", type(obj))
                     break
             else:
                 break
@@ -180,7 +182,6 @@ class ConnectionHandler:
             return self.request_lobby_creation(hostname, port, lobby_name, password, username, pdf)
         return True
 
-
     def join_lobby(self, hostname, port, lobby_name, password, username) -> bool:
         if self.connection is None:
             self.connection = _Connection()
@@ -203,6 +204,7 @@ class ConnectionHandler:
                     self.connection.socket.settimeout(old_timeout)
 
                 obj = pickle.loads(data)
+                print("object", obj)
                 if obj is int:
                     self.connection.remove_socket()
                     return False
@@ -225,7 +227,7 @@ class ConnectionHandler:
         else:
             self.connection.remove_socket()
             return self.join_lobby(hostname, port, lobby_name, password, username)
-
+        return True
 
 if __name__ == "__main__":
     c = ConnectionHandler()

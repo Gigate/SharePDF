@@ -161,13 +161,14 @@ class MessageHandler:
             self.server._lobbies[lobby_connect.lobby_name] = self.server.add_lobby(
                 lobby_connect.pdf, lobby_connect.lobby_name, lobby_connect.user_id, lobby_connect.password)
             return lobby_connect
-        elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password is self.server._lobbies[lobby_connect.lobby_name].password:
+        elif lobby_connect.lobby_name in self.server._lobbies and lobby_connect.pdf is None and lobby_connect.password == self.server._lobbies[lobby_connect.lobby_name].password:
             lobby_connect.user_id = self.server._lobbies[lobby_connect.lobby_name].high_id
             self.server._lobbies[lobby_connect.lobby_name].high_id += 1
             lobby_connect.pdf = self.server._lobbies[lobby_connect.lobby_name].pdf
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
             self.server._lobbies[lobby_connect.lobby_name].changed[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
+            return lobby_connect
         else:
             return 1
 

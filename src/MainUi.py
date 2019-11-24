@@ -12,8 +12,8 @@ from PdfDrawWidget import PdfDrawWidget
 
 class MainUI(QMainWindow):
 
-    def __init__(self):
-
+    def __init__(self, version):
+        self.version = version
         super().__init__()
 
         verticalLayout = QVBoxLayout()
@@ -60,12 +60,12 @@ class MainUI(QMainWindow):
 
         next_page = QAction('>', self)
         next_page.setShortcut(QKeySequence.MoveToNextPage)
-        next_page_f = lambda : self.pdfWidget.updatePage(newPageDelta=1)
+        next_page_f = lambda: self.pdfWidget.updatePage(newPageDelta=1)
         next_page.triggered.connect(next_page_f)
 
         previous_page = QAction('<', self)
         previous_page.setShortcut(QKeySequence.MoveToPreviousPage)
-        previous_page_f = lambda : self.pdfWidget.updatePage(newPageDelta=-1)
+        previous_page_f = lambda: self.pdfWidget.updatePage(newPageDelta=-1)
         previous_page.triggered.connect(previous_page_f)
 
         self.page_number = QLabel(self)
@@ -98,14 +98,18 @@ class MainUI(QMainWindow):
         self.pdfWidget.keyReleaseEvent(event)
 
     def getPath(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
-        if fname[0]:
-            self.pdfWidget.loadDocument(fname[0])
-            print("connector method", self.con_handler.request_lobby_creation(
-                "localhost", 4454, "test2", "password", "Tim", fname[0]))
-
+        print(self.version)
+        if self.version:
+            fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
+            if fname[0]:
+                self.pdfWidget.loadDocument(fname[0])
+                print("connector method", self.con_handler.request_lobby_creation(
+                    "localhost", 4454, "test3", "password", "Tim", fname[0]))
+        else:
+            print("connector method", self.con_handler.join_lobby(
+                "localhost", 4454, "test3", "password", "Joshua"))
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = MainUI()
+    app=QApplication(sys.argv)
+    MainUI(sys.argv[1] == 'True')
     sys.exit(app.exec_())
