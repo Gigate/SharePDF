@@ -9,6 +9,8 @@ from CentraWidget import CentralWidget
 from ConnectionHandler import ConnectionHandler
 from PdfDrawWidget import PdfDrawWidget
 
+from src.CreateDialog import CreateLobbyDialog, ExitLobbyDialog
+
 
 class MainUI(QMainWindow):
 
@@ -72,6 +74,14 @@ class MainUI(QMainWindow):
         self.page_number.setText('Page: 0')
         self.pdfWidget.call_page_num_changed = self.update_page_number
 
+        joinAct = QAction('Join', self)
+        joinAct.setShortcut('Ctrl+J')
+        joinAct.triggered.connect(self.getJoin)
+
+        exitLobbyAct = QAction('ExitJoin', self)
+        exitLobbyAct.setShortcut('Ctrl+E')
+        exitLobbyAct.triggered.connect(self.getLobbyExit)
+
         self.intvalidator.setRange(0, 0)
         # self.pageNum = QLineEdit(self.toolbar)
         # self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -88,6 +98,9 @@ class MainUI(QMainWindow):
 
     def update_page_number(self):
         self.page_number.setText(("Page: " + str(self.pdfWidget.pageNum)))
+        self.toolbar.addAction(joinAct)
+        self.toolbar.addAction(exitLobbyAct)
+        self.toolbar.addWidget(self.pageNum)
 
     def keyPressEvent(self, event: QKeyEvent):
         """Connect all KeyPressEvents to the self.pdfWidget"""
@@ -108,6 +121,19 @@ class MainUI(QMainWindow):
         else:
             print("connector method", self.con_handler.join_lobby(
                 "localhost", 4454, "test3", "password", "Joshua"))
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
+        if fname[0]:
+            self.pdfWidget.loadDocument(fname[0])
+
+    def getJoin(self):
+        dialog = CreateLobbyDialog(self)
+        dialog.show()
+
+
+    def getLobbyExit(self):
+        dialog = ExitLobbyDialog(self)
+        dialog.show()
+
 
 if __name__ == '__main__':
     app=QApplication(sys.argv)

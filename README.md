@@ -44,10 +44,10 @@ Send Python classes serialized (Pickel) (via TCP):
  - plaintext txt
  - PDF pdf
  - Lobby lby
- - StatusServer sti (send via UDP)
+ - ServerStatus sst (send via UDP)
     - dictionary (key: Username) with StatusClient classes (or None if there is no change in status)
     - list with connected/disconnected events
- - StatusClient sto (send via UDP)
+ - ClientStatus cst (send via UDP)
     - y scroll value
     - mouse position
     - list with marker objects (marked text, comments, etc.)

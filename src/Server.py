@@ -168,7 +168,6 @@ class MessageHandler:
             self.server._lobbies[lobby_connect.lobby_name].users[lobby_connect.user_id] = None
             self.server._lobbies[lobby_connect.lobby_name].changed[lobby_connect.user_id] = None
             self.server._user[lobby_connect.user_id] = self.server._lobbies[lobby_connect.lobby_name]
-            print(lobby_connect.pdf)
             return lobby_connect
         else:
             return 1
