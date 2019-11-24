@@ -85,7 +85,7 @@ class MainUI(QMainWindow):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
             self.pdfWidget.loadDocument(fname[0])
-            print("connector method", self.con_handler.request_lobby_creation("localhost", 4454, "test", "password", "Tim", fname[0]))
+            print("connector method", self.con_handler.request_lobby_creation("localhost", 4454, "test2", "password", "Tim", fname[0]))
             
 
 
