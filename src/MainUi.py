@@ -1,7 +1,7 @@
 import sys
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeyEvent, QIntValidator
+from PyQt5.QtGui import QKeyEvent, QIntValidator, QKeySequence
 from PyQt5.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QHBoxLayout, QWidget, QToolBar, QAction, qApp, \
     QFileDialog, QLineEdit, QSizePolicy, QLabel
 
@@ -58,20 +58,36 @@ class MainUI(QMainWindow):
         openAct.setShortcut('Ctrl+O')
         openAct.triggered.connect(self.getPath)
 
-        page_number = QLabel(self)
-        page_number.setText()
+        next_page = QAction('>', self)
+        next_page.setShortcut(QKeySequence.MoveToNextPage)
+        next_page_f = lambda : self.pdfWidget.updatePage(newPageDelta=1)
+        next_page.triggered.connect(next_page_f)
+
+        previous_page = QAction('<', self)
+        previous_page.setShortcut(QKeySequence.MoveToPreviousPage)
+        previous_page_f = lambda : self.pdfWidget.updatePage(newPageDelta=-1)
+        previous_page.triggered.connect(previous_page_f)
+
+        self.page_number = QLabel(self)
+        self.page_number.setText('Page: 0')
+        self.pdfWidget.call_page_num_changed = self.update_page_number
 
         self.intvalidator.setRange(0, 0)
-        self.pageNum = QLineEdit(self.toolbar)
-        self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.pageNum.setValidator(self.intvalidator)
-        self.pageNum.setFocusPolicy(Qt.ClickFocus)
+        # self.pageNum = QLineEdit(self.toolbar)
+        # self.pageNum.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # self.pageNum.setValidator(self.intvalidator)
+        # self.pageNum.setFocusPolicy(Qt.ClickFocus)
 
         self.toolbar.addAction(exitAct)
         self.toolbar.addAction(openAct)
-        self.toolbar.addWidget(self.pageNum)
+        self.toolbar.addAction(previous_page)
+        self.toolbar.addWidget(self.page_number)
+        self.toolbar.addAction(next_page)
 
         # todo change page, show page number, join lobby, create lobby, show one mouse pointer, show names
+
+    def update_page_number(self):
+        self.page_number.setText(("Page: " + str(self.pdfWidget.pageNum)))
 
     def keyPressEvent(self, event: QKeyEvent):
         """Connect all KeyPressEvents to the self.pdfWidget"""
@@ -85,8 +101,8 @@ class MainUI(QMainWindow):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
             self.pdfWidget.loadDocument(fname[0])
-            print("connector method", self.con_handler.request_lobby_creation("localhost", 4454, "test2", "password", "Tim", fname[0]))
-            
+            print("connector method", self.con_handler.request_lobby_creation(
+                "localhost", 4454, "test2", "password", "Tim", fname[0]))
 
 
 if __name__ == '__main__':
